@@ -127,7 +127,7 @@ async def chat(req: MensajeRequest):
         system_prompt += "\n\n".join(documentos_extra)
  
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash",
+        model_name="gemini-2.5-flash-preview-04-17",
         system_instruction=system_prompt,
     )
  
@@ -180,4 +180,119 @@ async def estado_documentos():
     return {"total": len(documentos_extra), "lista": [d[:80] + "..." for d in documentos_extra]}
  
 app.mount("/static", StaticFiles(directory="static"), name="static")
-
+ 
+# ──────────────────────────────────────────
+#  Documentos curriculares permanentes IERUU
+# ──────────────────────────────────────────
+DOCUMENTOS_PERMANENTES = """
+=== MALLA CURRICULAR QUÍMICA 2025 – IE RAFAEL URIBE URIBE ===
+ 
+GRADO 6° – QUÍMICA
+Período 1: Propiedades fisicoquímicas (solubilidad, viscosidad, densidad, puntos de ebullición y fusión). Influencia de temperatura y presión. Técnicas de separación de mezclas.
+Período 2: Variaciones de T y P en cambio de fase y disolución. Diseño de experimentos sencillos.
+Período 3: Selección de técnicas de separación en procesos industriales y científicos. Sostenibilidad.
+ 
+GRADO 7° – QUÍMICA
+Período 1: Sistema periódico. Clasificación de elementos: metales, no metales, metaloides. Grupos y períodos.
+Período 2: Propiedades de elementos y formación de compuestos químicos según posición en tabla periódica.
+Período 3: Relación grupos/períodos con propiedades químicas. Experimentos de formación de compuestos.
+ 
+GRADO 8° – QUÍMICA
+Período 1: Reacciones químicas. Recombinación atómica. Enlaces iónicos y covalentes.
+Período 2: Conservación de la masa. Balanceo de ecuaciones químicas sencillas.
+Período 3: Cambios energéticos en reacciones de síntesis y descomposición. Impacto ambiental.
+ 
+GRADO 9° – QUÍMICA
+Período 1: Acidez y basicidad. Propiedades de ácidos y bases. Indicadores químicos.
+Período 2: Reacciones ácido-base. Relación con procesos biológicos (digestión, pH corporal).
+Período 3: Escala de pH. Medición de pH en muestras. Prácticas responsables.
+ 
+GRADO 10° – QUÍMICA (3h/semana)
+Período 1: Mecanismos de reacción: óxido-reducción, descomposición, neutralización, precipitación. Configuración electrónica y tabla periódica.
+Período 2: Ley de conservación de masa y carga. Balanceo avanzado. Relaciones molares entre reactivos y productos.
+Período 3: Formación de compuestos inorgánicos. Nomenclatura IUPAC: óxidos, ácidos, hidróxidos, sales.
+ 
+GRADO 11° – QUÍMICA (3h/semana)
+Período 1: Configuración electrónica. Formación de compuestos inorgánicos (repaso y profundización de 10°).
+Período 2: Química orgánica. Mecanismos: óxido-reducción, homólisis, heterólisis, pericíclicas. Alcoholes, fenoles, cetonas, aldehídos.
+Período 3: Factores energéticos en reacciones orgánicas (exotérmico/endotérmico). Nomenclatura IUPAC orgánica. Procesos sostenibles.
+ 
+=== MALLA CURRICULAR ECONOMÍA Y CIENCIAS POLÍTICAS 2025 – IE RAFAEL URIBE URIBE ===
+ 
+GRADO 10° – ECONOMÍA Y CIENCIAS POLÍTICAS (2h/semana)
+Período 1 – Relaciones con la historia y culturas: Hitos históricos de sistemas económicos y políticos. Influencia histórica en decisiones políticas y económicas de las sociedades.
+Período 2 – Relaciones Ético-Políticas: Vínculos entre economía, ambiente y política. Impacto de actividades económicas en el medio ambiente. Mapas conceptuales.
+Período 3 – Relaciones espaciales y ambientales: Fundamentos ético-políticos de sistemas democráticos. Participación ciudadana. Simulación de procesos democráticos.
+ 
+GRADO 11° – ECONOMÍA Y CIENCIAS POLÍTICAS (2h/semana)
+Período 1 – Relaciones con la historia y culturas: Sistemas políticos y económicos globales. Influencia en transformaciones culturales. Análisis comparativo de economías mundiales.
+Período 2 – Relaciones Ético-Políticas: Políticas públicas y desarrollo sostenible. Proyectos de mitigación ambiental. Pensamiento crítico y sistémico.
+Período 3 – Relaciones espaciales y ambientales: Responsabilidad ciudadana en democracia. Justicia social y derechos humanos. Debates escolares.
+ 
+Institución: IE Rafael Uribe Uribe | Núcleo 930 – Comuna 12 | Medellín
+Lema: "Innovación, liderazgo y ciudadanía"
+"""
+ 
+# Inyectar documentos permanentes al inicio de documentos_extra
+documentos_extra.insert(0, DOCUMENTOS_PERMANENTES)
+ 
+# Tecnología e Informática - agregada como documento adicional
+DOCUMENTOS_PERMANENTES += """
+ 
+=== MALLA CURRICULAR TECNOLOGÍA E INFORMÁTICA 2025 – IE RAFAEL URIBE URIBE ===
+ 
+GRADO 1° – Tecnología e Informática (2h/semana)
+P1: Naturaleza de la tecnología. Artefactos y necesidades cotidianas. Respeto por la evolución tecnológica.
+P2: Materiales en artefactos. Función de cada artefacto. Clasificación según finalidad. Seguridad personal.
+P3: Componentes de artefactos. Elección del artefacto adecuado. Uso racional y cuidado de herramientas.
+ 
+GRADO 2° – Tecnología e Informática (2h/semana)
+P1: Historia de la tecnología. Clasificación de artefactos por características físicas, uso y procedencia. Emprendimiento.
+P2: Evolución de artefactos. Computadora como herramienta de comunicación. Trabajo en equipo.
+P3: Innovación en artefactos. Detección de fallas simples. Trabajo colaborativo.
+ 
+GRADO 3° – Tecnología e Informática (2h/semana)
+P1: Artefactos en el entorno escolar. Manejo de herramientas tecnológicas. Normas de clase.
+P2: Funcionamiento de artefactos. Uso responsable de tecnología. Solución de problemas cotidianos.
+P3: Tecnología como ayuda cotidiana. Clasificación por función. Cambios tecnológicos en la sociedad.
+ 
+GRADO 4° – Tecnología e Informática (2h/semana)
+P1: Diferencia productos tecnológicos vs naturales. TIC para comunicación, aprendizaje e investigación. Ventajas/desventajas de soluciones tecnológicas.
+P2: Artefactos con tecnología de información. Herramientas manuales: medición, trazado, corte. Diseño de maquetas.
+P3: Fuentes y tipos de energía. Representación de productos tecnológicos con esquemas y dibujos. Impacto social y ambiental.
+ 
+GRADO 5° – Tecnología e Informática (2h/semana)
+P1: Fuentes y tipos de energía. TIC para aprendizaje y búsqueda de información. Uso mesurado de energía.
+P2: Criterios de calidad en artefactos. Descripción mediante esquemas y dibujos. Construcción de objetos.
+P3: Instituciones e innovaciones para el desarrollo del país. Construcción de maquetas y material reciclable.
+ 
+GRADO 6° – Tecnología e Informática (2h/semana)
+P1: Principios de ciencia aplicados a tecnología. Evaluación crítica de productos tecnológicos. Impacto ambiental de la tecnología. Reciclaje de desechos tecnológicos.
+P2: Innovaciones e inventos trascendentales. Criterios para selección de soluciones: eficiencia, seguridad, costo, impacto. Preservación del ambiente.
+P3: Relación tecnología-informática con factores históricos. Herramientas y equipos seguros. Derechos de acceso a bienes tecnológicos.
+ 
+GRADO 7° – Tecnología e Informática (2h/semana)
+P1: Sistemas tecnológicos: principios, conceptos, componentes. Contenidos digitales. Solución de problemas cotidianos. Uso racional de recursos.
+P2: Innovaciones históricas. TIC para procesar y comunicar información. Ventajas/desventajas de tecnología y naturaleza.
+P3: Evolución de técnicas, herramientas y materiales. Algoritmos básicos: secuenciación, condición, repetición. Uso ético de tecnología.
+ 
+GRADO 8° – Tecnología e Informática (2h/semana)
+P1: Relación tecnología con otras disciplinas. Herramientas colaborativas con principios éticos, estéticos y legales. Interpretación de diseños e innovaciones.
+P2: Inventos, innovaciones y desarrollo tecnológico. Mantenimiento preventivo de productos tecnológicos. Detección de fallas en sistemas.
+P3: Evolución del conocimiento y tecnología. Uso eficiente de herramientas en otras disciplinas. Patentes, derechos de autor y desarrollo tecnológico. Impacto ambiental de sobreexplotación de recursos.
+ 
+GRADO 9° – Tecnología e Informática (2h/semana)
+P1: Diferencia entre ciencia, técnica e ingeniería. Clasificación de productos tecnológicos por problemáticas. Detección de fallas y propuesta de soluciones.
+P2: Principios que hacen posible la tecnología. Selección argumentada de productos tecnológicos. Patentes y derechos de autor. Ética en el diseño tecnológico.
+P3: Diseño de nuevos productos tecnológicos. Herramientas digitales emergentes e inteligencia artificial. Influencia de la tecnología en cambios sociales y culturales.
+ 
+GRADO 10° – Tecnología e Informática (2h/semana)
+P1: Tecnología como cúmulo de conocimientos históricos. Aplicaciones de tecnología según contexto. Gestión de soluciones eficientes. Impactos positivos y negativos de la tecnología.
+P2: Evolución tecnológica e informática en la sociedad. Normas de seguridad industrial. Mantenimiento correctivo de productos. Diseño de soluciones con informática.
+P3: Licencias de artefactos digitales y analógicos. Herramientas informáticas para búsqueda y organización. Soluciones tecnológicas comunitarias. Cultura informática, respeto e inclusión.
+ 
+GRADO 11° – Tecnología e Informática (2h/semana)
+P1: Transferencia tecnológica exitosa. Propuestas innovadoras. Función correcta de medios tecnológicos con ética. Reciclaje de desechos tecnológicos.
+P2: Incidencia del conocimiento tecnológico en sistemas futuros. Diseño y prueba de prototipos. Antropometría y ergonomía en soluciones. Protocolos de seguridad y ética digital.
+P3: Diferencia entre prospecto, diseño y maqueta. Propuestas de innovación tecnológica. Debates sobre buen uso y manejo ético de TIC. Fomento de cultura tecnológica responsable.
+"""
