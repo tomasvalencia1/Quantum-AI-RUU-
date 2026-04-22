@@ -127,7 +127,7 @@ async def chat(req: MensajeRequest):
         system_prompt += "\n\n".join(documentos_extra)
  
     model = genai.GenerativeModel(
-        model_name="gemini-2.5-flash-preview-04-17",
+        model_name="gemini-2.5-flash",
         system_instruction=system_prompt,
     )
  
