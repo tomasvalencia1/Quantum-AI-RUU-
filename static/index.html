@@ -924,8 +924,10 @@ function quitarTyping(){
   if(t)t.remove();
 }
 let quotaTimer = null;
+let mensajePendiente = null;  // guarda el msg que falló por cuota
 
-function mostrarQuota(segundos){
+function mostrarQuota(segundos, msgFallido){
+  mensajePendiente = msgFallido || null;
   const overlay = document.getElementById('quota-overlay');
   const num     = document.getElementById('quota-num');
   const arc     = document.getElementById('quota-arc');
@@ -933,16 +935,18 @@ function mostrarQuota(segundos){
   const total   = segundos;
   const circum  = 283; // 2*pi*45
 
+  // reset arc color por si se quedó verde de una vez anterior
+  arc.style.stroke = 'var(--red-hi)';
   overlay.classList.add('visible');
   btn.style.display = 'none';
   num.textContent = segundos;
+  num.style.color = 'var(--white)';
   arc.style.strokeDashoffset = 0;
 
   if(quotaTimer) clearInterval(quotaTimer);
   let remaining = segundos;
   quotaTimer = setInterval(function(){
     remaining--;
-    // animate the number change
     num.style.transform = 'scale(1.3)';
     num.style.color = remaining <= 5 ? 'var(--red-hi)' : 'var(--white)';
     setTimeout(()=>{ num.style.transform = 'scale(1)'; }, 180);
@@ -965,6 +969,46 @@ function cerrarQuota(){
   const overlay = document.getElementById('quota-overlay');
   overlay.classList.remove('visible');
   if(quotaTimer){ clearInterval(quotaTimer); quotaTimer = null; }
+  // reenviar el mensaje que falló, sin mostrarlo de nuevo al usuario
+  if(mensajePendiente){
+    const msg = mensajePendiente;
+    mensajePendiente = null;
+    reenviarSilencioso(msg);
+  }
+}
+
+async function reenviarSilencioso(msg){
+  if(esperando) return;
+  esperando = true;
+  document.getElementById('btn-enviar').disabled = true;
+  mostrarTyping();
+  try{
+    const res = await fetch(`${API_URL}/chat`,{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({mensaje:msg, historial})
+    });
+    const data = await res.json();
+    quitarTyping();
+    if(res.ok){
+      agregarMensaje('ai', data.respuesta);
+      historial.push({rol:'user',texto:msg},{rol:'model',texto:data.respuesta});
+      if(historial.length>20) historial=historial.slice(-20);
+    } else if(res.status===429 || (data.detail && data.detail.includes('429'))){
+      // sigue con cuota — mostrar overlay otra vez
+      let secs = 60;
+      const match = (data.detail||'').match(/retry in (\d+)/i);
+      if(!match){ const m2=(data.detail||'').match(/(\d+)\s*\.\d+s/); if(m2) secs=parseInt(m2[1])+1; }
+      else secs = parseInt(match[1])+1;
+      mostrarQuota(secs, msg);
+    } else {
+      agregarMensaje('ai','⚠️ Error: '+(data.detail||'Intenta de nuevo'));
+    }
+  } catch(e){
+    quitarTyping();
+    agregarMensaje('ai','⚠️ No puedo conectarme al servidor. Revisa tu conexión.');
+  }
+  document.getElementById('btn-enviar').disabled = false;
+  esperando = false;
 }
 
 async function enviarMensaje(){
@@ -994,7 +1038,7 @@ async function enviarMensaje(){
       const match = (data.detail||'').match(/retry in (\d+)/i) || (data.detail||'').match(/seconds[^0-9]*(\d+)/i);
       if(!match){ const m2=(data.detail||'').match(/(\d+)\s*\.\d+s/); if(m2) secs=parseInt(m2[1])+1; }
       else secs = parseInt(match[1])+1;
-      mostrarQuota(secs);
+      mostrarQuota(secs, msg);
     } else {
       agregarMensaje('ai','⚠️ Error: '+(data.detail||'Intenta de nuevo'));
     }
