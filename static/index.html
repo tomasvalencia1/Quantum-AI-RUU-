@@ -325,6 +325,63 @@
   #btn-enviar svg     { width:15px; height:15px; fill:white; position:relative; z-index:1; }
   .input-hint { font-size:9px; color:var(--muted2); margin-top:7px; font-family:'Space Mono',monospace; text-align:right; letter-spacing:.05em; }
 
+  /* ── Overlay de cuota excedida ── */
+  #quota-overlay {
+    position:fixed; inset:0; z-index:300;
+    background:rgba(0,0,0,0.82);
+    backdrop-filter:blur(10px);
+    display:none; align-items:center; justify-content:center;
+    padding:20px;
+    animation:overlay-in .4s cubic-bezier(.4,0,.2,1) both;
+  }
+  #quota-overlay.visible { display:flex; }
+  #quota-card {
+    background:var(--s1);
+    border:1px solid rgba(192,57,43,0.45);
+    border-radius:14px;
+    padding:30px 26px 24px;
+    max-width:400px; width:100%;
+    box-shadow:0 0 80px rgba(192,57,43,.18), 0 24px 60px rgba(0,0,0,.65);
+    display:flex; flex-direction:column; align-items:center; gap:18px;
+    text-align:center;
+    animation:card-in .5s cubic-bezier(.22,1,.36,1) both;
+  }
+  .quota-icon { font-size:42px; line-height:1; animation:quota-pulse 2s ease-in-out infinite; }
+  @keyframes quota-pulse {
+    0%,100% { transform:scale(1); filter:drop-shadow(0 0 0px rgba(192,57,43,0)); }
+    50%     { transform:scale(1.08); filter:drop-shadow(0 0 10px rgba(192,57,43,.5)); }
+  }
+  .quota-title { font-size:17px; font-weight:700; color:var(--white); letter-spacing:.01em; }
+  .quota-title span { color:var(--red-hi); }
+  .quota-msg { font-size:13px; color:var(--muted); line-height:1.7; font-weight:300; max-width:320px; }
+  .quota-timer-wrap {
+    position:relative; width:110px; height:110px;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .quota-timer-svg { position:absolute; inset:0; transform:rotate(-90deg); }
+  .quota-timer-track { fill:none; stroke:var(--s3); stroke-width:6; }
+  .quota-timer-arc   { fill:none; stroke:var(--red-hi); stroke-width:6; stroke-linecap:round;
+    stroke-dasharray:283; stroke-dashoffset:0; transition:stroke-dashoffset .9s linear; }
+  .quota-timer-num {
+    font-family:'Space Mono',monospace; font-size:26px; font-weight:700;
+    color:var(--white); line-height:1; position:relative; z-index:1;
+  }
+  .quota-timer-label {
+    font-family:'Space Mono',monospace; font-size:9px; color:var(--muted);
+    letter-spacing:.1em; text-transform:uppercase; margin-top:-4px;
+  }
+  #quota-close-btn {
+    width:100%; padding:11px;
+    background:linear-gradient(145deg,var(--red-hi),var(--red-deep));
+    border:none; border-radius:8px; cursor:pointer;
+    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em;
+    color:white; font-weight:700; text-transform:uppercase;
+    box-shadow:0 4px 18px rgba(192,57,43,.35);
+    transition:opacity .3s ease, transform .25s cubic-bezier(.34,1.56,.64,1);
+    display:none;
+  }
+  #quota-close-btn:hover { opacity:.9; transform:translateY(-2px); }
+
   /* ── Popup de bienvenida ── */
   #popup-overlay {
     position:fixed; inset:0; z-index:200;
@@ -582,6 +639,26 @@
 
 <div id="toast"></div>
 
+<!-- Overlay cuota excedida -->
+<div id="quota-overlay">
+  <div id="quota-card">
+    <div class="quota-icon">⚡</div>
+    <div class="quota-title">Límite de <span>cuota alcanzado</span></div>
+    <p class="quota-msg">El asistente superó el límite de tokens por minuto de Gemini. Espera unos segundos y podrás seguir chateando normalmente 😊</p>
+    <div class="quota-timer-wrap">
+      <svg class="quota-timer-svg" viewBox="0 0 100 100">
+        <circle class="quota-timer-track" cx="50" cy="50" r="45"/>
+        <circle class="quota-timer-arc"   cx="50" cy="50" r="45" id="quota-arc"/>
+      </svg>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div class="quota-timer-num" id="quota-num">--</div>
+        <div class="quota-timer-label">segundos</div>
+      </div>
+    </div>
+    <button id="quota-close-btn" onclick="cerrarQuota()">✓ ¡Listo, continuar!</button>
+  </div>
+</div>
+
 <script>
 // ── Popup de bienvenida ──
 (function(){
@@ -674,6 +751,44 @@ function quitarTyping(){
   const t=document.getElementById('typing-indicator');
   if(t)t.remove();
 }
+let quotaTimer = null;
+
+function mostrarQuota(segundos){
+  const overlay = document.getElementById('quota-overlay');
+  const num     = document.getElementById('quota-num');
+  const arc     = document.getElementById('quota-arc');
+  const btn     = document.getElementById('quota-close-btn');
+  const total   = segundos;
+  const circum  = 283; // 2*pi*45
+
+  overlay.classList.add('visible');
+  btn.style.display = 'none';
+  num.textContent = segundos;
+  arc.style.strokeDashoffset = 0;
+
+  if(quotaTimer) clearInterval(quotaTimer);
+  let remaining = segundos;
+  quotaTimer = setInterval(function(){
+    remaining--;
+    num.textContent = remaining;
+    const offset = circum * (1 - remaining / total);
+    arc.style.strokeDashoffset = offset;
+    if(remaining <= 0){
+      clearInterval(quotaTimer);
+      quotaTimer = null;
+      num.textContent = '✓';
+      arc.style.strokeDashoffset = circum;
+      btn.style.display = 'block';
+    }
+  }, 1000);
+}
+
+function cerrarQuota(){
+  const overlay = document.getElementById('quota-overlay');
+  overlay.classList.remove('visible');
+  if(quotaTimer){ clearInterval(quotaTimer); quotaTimer = null; }
+}
+
 async function enviarMensaje(){
   if(esperando)return;
   const inp=document.getElementById('texto-input');
@@ -695,7 +810,14 @@ async function enviarMensaje(){
       agregarMensaje('ai',data.respuesta);
       historial.push({rol:'user',texto:msg},{rol:'model',texto:data.respuesta});
       if(historial.length>20)historial=historial.slice(-20);
-    }else{
+    } else if(res.status===429 || (data.detail && data.detail.includes('429'))){
+      // Detectar segundos de espera desde el mensaje de error
+      let secs = 60;
+      const match = (data.detail||'').match(/retry in (\d+)/i) || (data.detail||'').match(/seconds[^0-9]*(\d+)/i);
+      if(!match){ const m2=(data.detail||'').match(/(\d+)\s*\.\d+s/); if(m2) secs=parseInt(m2[1])+1; }
+      else secs = parseInt(match[1])+1;
+      mostrarQuota(secs);
+    } else {
       agregarMensaje('ai','⚠️ Error: '+(data.detail||'Intenta de nuevo'));
     }
   }catch(e){
