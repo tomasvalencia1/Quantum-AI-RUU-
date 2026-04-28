@@ -232,6 +232,87 @@
   #btn-enviar svg     { width:15px; height:15px; fill:white; }
   .input-hint { font-size:9px; color:var(--muted2); margin-top:7px; font-family:'Space Mono',monospace; text-align:right; letter-spacing:.05em; }
 
+  /* ── Popup de bienvenida ── */
+  #popup-overlay {
+    position:fixed; inset:0; z-index:200;
+    background:rgba(0,0,0,0.72);
+    backdrop-filter:blur(6px);
+    display:flex; align-items:center; justify-content:center;
+    padding:20px;
+    animation:fade-in .35s ease both;
+  }
+  @keyframes fade-in { from{opacity:0} to{opacity:1} }
+  @keyframes fade-out { from{opacity:1} to{opacity:0} }
+  #popup-overlay.closing { animation:fade-out .3s ease both; }
+
+  #popup-card {
+    background:var(--s1);
+    border:1px solid rgba(192,57,43,0.35);
+    border-radius:14px;
+    padding:28px 26px 22px;
+    max-width:420px; width:100%;
+    box-shadow:0 0 60px rgba(192,57,43,0.12), 0 20px 60px rgba(0,0,0,0.5);
+    display:flex; flex-direction:column; gap:18px;
+    animation:pop-in .4s cubic-bezier(.34,1.4,.64,1) both;
+  }
+  .popup-header {
+    display:flex; align-items:center; gap:11px;
+  }
+  .popup-logo {
+    position:relative; width:36px; height:36px; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .popup-logo-ring {
+    position:absolute; inset:0; border-radius:50%;
+    background:conic-gradient(from 0deg, var(--red-hi) 0%, var(--red-deep) 35%, transparent 50%, var(--red-deep) 65%, var(--red-hi) 100%);
+    animation:spin 3.5s linear infinite;
+  }
+  .popup-logo-inner {
+    position:absolute; inset:3px; border-radius:50%;
+    background:var(--s1); display:flex; align-items:center; justify-content:center;
+  }
+  .popup-logo-q { font-family:'Space Mono',monospace; font-size:14px; font-weight:700; color:var(--white); line-height:1; }
+  .popup-title { font-size:16px; font-weight:700; color:var(--white); letter-spacing:.01em; }
+  .popup-title span { color:var(--red-hi); }
+  .popup-subtitle { font-size:10px; color:var(--muted); font-family:'Space Mono',monospace; letter-spacing:.06em; margin-top:1px; }
+
+  .popup-divider { height:1px; background:linear-gradient(90deg,transparent,rgba(192,57,43,.3),transparent); }
+
+  .popup-items { display:flex; flex-direction:column; gap:13px; }
+  .popup-item {
+    display:flex; align-items:flex-start; gap:12px;
+    background:rgba(255,255,255,.027); border:1px solid var(--borderW);
+    border-radius:9px; padding:12px 14px;
+  }
+  .popup-icon {
+    font-size:18px; flex-shrink:0; margin-top:1px; line-height:1;
+  }
+  .popup-item-text { font-size:13px; color:var(--text); line-height:1.6; font-weight:300; }
+  .popup-item-text strong { color:var(--white); font-weight:600; }
+
+  .popup-footer { display:flex; flex-direction:column; gap:10px; }
+  #popup-btn {
+    width:100%; padding:11px;
+    background:linear-gradient(145deg,var(--red-hi),var(--red-deep));
+    border:none; border-radius:8px; cursor:pointer;
+    font-family:'Space Mono',monospace; font-size:11px; letter-spacing:.08em;
+    color:white; font-weight:700; text-transform:uppercase;
+    transition:opacity .2s, transform .15s, box-shadow .2s;
+    box-shadow:0 4px 18px rgba(192,57,43,.35);
+    position:relative; overflow:hidden;
+  }
+  #popup-btn:disabled { cursor:not-allowed; opacity:.65; }
+  #popup-btn:not(:disabled):hover { opacity:.88; transform:translateY(-1px); box-shadow:0 6px 22px rgba(192,57,43,.5); }
+
+  /* Progress bar inside button */
+  #popup-progress {
+    position:absolute; left:0; top:0; bottom:0;
+    background:rgba(255,255,255,0.15);
+    transition:width .1s linear;
+    border-radius:8px;
+  }
+  #popup-btn-label { position:relative; z-index:1; }
+
   /* ── Toast ── */
   #toast {
     position:fixed; bottom:110px; left:50%; transform:translateX(-50%);
@@ -245,6 +326,55 @@
 </head>
 <body>
 <div class="atmo"></div>
+
+<!-- ── Popup de bienvenida ── -->
+<div id="popup-overlay">
+  <div id="popup-card">
+    <div class="popup-header">
+      <div class="popup-logo">
+        <div class="popup-logo-ring"></div>
+        <div class="popup-logo-inner"><span class="popup-logo-q">Q</span></div>
+      </div>
+      <div>
+        <div class="popup-title">Antes de comenzar — <span>léeme</span></div>
+        <div class="popup-subtitle">Quantum AI · IERUU</div>
+      </div>
+    </div>
+
+    <div class="popup-divider"></div>
+
+    <div class="popup-items">
+      <div class="popup-item">
+        <div class="popup-icon">💸</div>
+        <div class="popup-item-text">
+          <strong>Sé consciente con tus preguntas.</strong><br>
+          Cada consulta tiene un costo real para nosotros. Aprovecha bien cada mensaje y evita preguntas vacías o repetidas.
+        </div>
+      </div>
+      <div class="popup-item">
+        <div class="popup-icon">🐞</div>
+        <div class="popup-item-text">
+          <strong>¿Algo salió mal? Repórtalo.</strong><br>
+          Si recibes una respuesta incorrecta o confusa, ayúdanos reportándola usando el formulario de feedback al final de cada respuesta.
+        </div>
+      </div>
+      <div class="popup-item">
+        <div class="popup-icon">🤝</div>
+        <div class="popup-item-text">
+          <strong>Únete al equipo Quantum AI.</strong><br>
+          Buscamos estudiantes con ganas de mejorar esta herramienta. Si quieres colaborar, ¡escríbenos!
+        </div>
+      </div>
+    </div>
+
+    <div class="popup-footer">
+      <button id="popup-btn" disabled onclick="cerrarPopup()">
+        <div id="popup-progress" style="width:0%"></div>
+        <span id="popup-btn-label">Entendido — espera 3s</span>
+      </button>
+    </div>
+  </div>
+</div>
 
 <header>
   <div class="logo">
@@ -323,6 +453,38 @@
 <div id="toast"></div>
 
 <script>
+// ── Popup de bienvenida ──
+(function(){
+  const DURATION = 10000; // ms
+  const btn = document.getElementById('popup-btn');
+  const label = document.getElementById('popup-btn-label');
+  const bar = document.getElementById('popup-progress');
+  let elapsed = 0;
+  const TICK = 50;
+  const timer = setInterval(function(){
+    elapsed += TICK;
+    const pct = Math.min((elapsed / DURATION) * 100, 100);
+    bar.style.width = pct + '%';
+    const secs = Math.ceil((DURATION - elapsed) / 1000);
+    if(elapsed < DURATION){
+      label.textContent = 'Entendido — espera ' + secs + 's';
+    } else {
+      clearInterval(timer);
+      btn.disabled = false;
+      label.textContent = '✓ Entendido, ¡comencemos!';
+      bar.style.width = '100%';
+    }
+  }, TICK);
+})();
+
+function cerrarPopup(){
+  const overlay = document.getElementById('popup-overlay');
+  overlay.classList.add('closing');
+  overlay.addEventListener('animationend', function(){
+    overlay.remove();
+  }, { once: true });
+}
+
 const API_URL = window.location.origin;
 let historial = [];
 let esperando = false;
