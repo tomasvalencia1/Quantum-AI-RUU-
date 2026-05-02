@@ -1200,6 +1200,8 @@ function cerrarQuota(){
   const overlay = document.getElementById('quota-overlay');
   overlay.classList.remove('visible');
   if(quotaTimer){ clearInterval(quotaTimer); quotaTimer = null; }
+  esperando = false;
+  document.getElementById('btn-enviar').disabled = false;
   if(mensajePendiente){
     const msg = mensajePendiente;
     mensajePendiente = null;
@@ -1250,6 +1252,7 @@ async function enviarMensaje(){
   esperando=true;
   agregarMensaje('user',msg);
   mostrarTyping();
+  let quotaActiva = false;
   try{
     const res=await fetch(`${API_URL}/chat`,{
       method:'POST',headers:{'Content-Type':'application/json'},
@@ -1262,6 +1265,7 @@ async function enviarMensaje(){
       historial.push({rol:'user',texto:msg},{rol:'model',texto:data.respuesta});
       if(historial.length>20)historial=historial.slice(-20);
     } else if(res.status===429 || (data.detail && data.detail.includes('429'))){
+      quotaActiva = true;
       let secs = 60;
       const match = (data.detail||'').match(/retry in (\d+)/i) || (data.detail||'').match(/seconds[^0-9]*(\d+)/i);
       if(!match){ const m2=(data.detail||'').match(/(\d+)\s*\.\d+s/); if(m2) secs=parseInt(m2[1])+1; }
@@ -1274,8 +1278,11 @@ async function enviarMensaje(){
     quitarTyping();
     agregarMensaje('ai','⚠️ No puedo conectarme al servidor. Revisa tu conexión.');
   }
-  document.getElementById('btn-enviar').disabled=false;
-  esperando=false;
+  // Solo re-habilitar si NO hay cuota activa — cerrarQuota() lo gestiona
+  if(!quotaActiva){
+    document.getElementById('btn-enviar').disabled=false;
+    esperando=false;
+  }
 }
 async function subirTexto(){
   const txt=document.getElementById('txt-doc').value.trim();
