@@ -1123,7 +1123,9 @@ function toggleAdmin(){
   document.getElementById('admin-toggle').textContent=p.classList.contains('open')?'✕ CERRAR':'⚙ ADMIN';
 }
 function sugerir(el){
-  document.getElementById('texto-input').value=el.textContent;
+  const txt=el.textContent;
+  if(contieneObscenidad(txt)){mostrarAlertaObscenidad();return;}
+  document.getElementById('texto-input').value=txt;
   enviarMensaje();
 }
 function marcarTexto(txt){
@@ -1242,11 +1244,1007 @@ async function reenviarSilencioso(msg){
   esperando = false;
 }
 
+// ── FILTRO DE PALABRAS OBSCENAS ──────────────────────────────────
+const PALABRAS_BLOQUEADAS = [
+  // ── Insultos y groserías en español (Colombia y general) ──────────────
+  'mierda','mierdas','mierd4','mier-da','mierdda','myerda','myrda','mierd@',
+  'mierrd4','myerd4','mieerda','mierdaaaa','mierddaa','mierda puta','mierda gonorrea',
+  // hijueputa y variantes mal escritas
+  'hijueputa','hijuepuetas','hijueputas','hjueputa','hjputa','hiueputa',
+  'hiju3puta','hiju3put4','hijueput4','h1jueputa','hjp','hijoemadre','hijuemadre',
+  'hijoeputa','hijuemadree','hijueputaaa','hijoputa','hijaputa','ijueputa','ijupta',
+  'la ijueputa','la ijupta','la hp','la hpta','la h.p','hp','h.p','h.p.',
+  // gonorrea y variantes
+  'gonorrea','gonorreas','gonorre4','gonore4','gonore','gonorr3a','gonorr34',
+  'g0norrea','gon0rrea','g0n0rrea','gonorea','gonoreaa','gonorreaa',
+  // malparido y variantes
+  'malparido','malparida','malparidos','malparidas','malpari2','malp4rido',
+  'malparydo','malparyda','malp4rydo','m4lparido','malp@rido','mal parido',
+  // puta y variantes
+  'puta','putas','puto','putos','put4','put@','putta','putaa','putaaa','puuta',
+  'p-u-t-a','p.u.t.a','putazo','putazos','putazon','putear','putazon','puto',
+  'put0','putt0','putto','putooo','putita','putito','prostituta','prostitución',
+  // marica y variantes
+  'marica','maricas','mar1ca','marik4','marika','m4rica','mar1k4','maricaaa',
+  'marikaaa','mariqua','mariquita','maricon','maricón','maricones','marikon',
+  'mar1c0n','mar1k0n','marik0n','m4ric0n','maricoon',
+  // güevón / huevón y variantes
+  'güevón','guevon','huevón','huevon','huevones','güevones','güeva','gueva',
+  'guev0n','huev0n','gueb0n','guebo','huebo','g-uevon','g.uevon','guevones',
+  'guevas','huevas','wevon','wevo','weba','webiar','webion','webones','webona',
+  // pendejo y variantes
+  'pendejo','pendejos','pendeja','pendejas','pend3jo','pendej0','pend3j0',
+  'pendejoo','pendejooo','pendejada','pendx','pndjo','pendejito','pendejon',
+  // imbécil y variantes
+  'imbécil','imbecil','imbéciles','imbecill','1mbecil','imb3cil','ymb3cil',
+  'imb3c1l','imbesiil','imvecil','imbesiil','imbecilll',
+  // idiota y variantes
+  'idiota','idiotas','idi0ta','idi0t4','id10ta','id10t4','idioota','idiotaa',
+  'idiootaaa','idi-ota','idiotazo','idiotaza',
+  // estúpido y variantes
+  'estúpido','estupido','estúpida','estupida','estúpidos','estupidos',
+  'estúpidas','estupidas','estup1do','3stupid0','estup1d0','3stup1d0',
+  'estoopido','estupidoo','estupidazo','estupidaza',
+  // culo y variantes
+  'culo','culos','culero','culera','culeros','culeras','culo roto','cul0',
+  'cull0','kulo','kul0','culito','culaso','culazo','cul3ro','kul3ro','kuleroo',
+  'culiao','culiado','culiada','culiados',
+  // pene / ano
+  'ano','pene','penes','peni','penito','picha',
+  // vagina y variantes
+  'vagina','vaginas','vajina','bagina','bajina',
+  // verga y variantes
+  'verga','vergas','vergajo','verg4','v3rga','v3rg4','berga','berg4',
+  'verg-a','verg.a','vergota','vergaza','vergon','vergudo','vergona','vergazo',
+  // coño y variantes
+  'coño','coños','concha','conchas','cono','con0','kono','k0no','conyo',
+  'c-o-n-o','c.o.n.o',
+  // chinga y variantes
+  'chinga','chingar','chingada','chingadera','chingado','chingados',
+  'chingon','chingona','chingones','chingate',
+  // polla y variantes
+  'polla','pollas','pollazo','poll4','p0lla','p0ll4','pollaza','pollon',
+  // joder y variantes
+  'joder','jodete','jódete','jodido','jodida','jodienda',
+  // otros españoles
+  'hostia','hostias','cabrón','cabron','cabrona','cabrones','cabronas',
+  'capullo','capullos','gilipollas','mamón','mamon','mamona','mamonas','mamones',
+  'cojones','cojonudo','follar','follador','subnormal','subnormals',
+  // maldito y variantes
+  'maldito','maldita','malditos','malditas','mald1to','m4ldito','mald1ta',
+  'm4ldita','malditooo','malditoo',
+  // ── Inglés y variantes ───────────────────────────────────────────────
+  'shit','sh1t','sh!t','$hit','shiiit','sheit','shyt','sht',
+  'fuck','fucker','fucking','fucked','fucks','fck','fuk','f-u-c-k','f.u.c.k',
+  'fucc','fukk','fvck','phuck','fuuuck','fuking','fukr','focking','phucking',
+  'bitch','bitches','b1tch','b!tch','biitch','bytch','bich','biotch','beeatch','biatch','btch',
+  'asshole','assholes','ass','asses','4sshole','@sshole','azhole','assh0le','ashole','4shole',
+  'cunt','cunts','damn','dammit','bastard','bastards',
+  'dick','dicks','d1ck','d!ck','dik','diick','dyck','dikk',
+  'cock','cocks','c0ck','c-o-c-k','coock','kok',
+  'pussy','pussies','pus5y','puss1','pussi','pu55y','pvssy',
+  'motherfucker','motherfuckers','motherfucking','mf','m0therfucker',
+  'whore','whores','slut','sluts','faggot','faggots',
+  'nigger','niggers','nigga','niggas','n1gga','n!gga','nigg4','n1gg4','niigga',
+  'retard','retards','idiot','idiots','moron','morons','loser','losers',
+  'wtf','stfu','kys','omfg','gtfo','fys',
+  // ── Frases y combinaciones ofensivas ─────────────────────────────────
+  'que se jodan','andate a la mierda','vete a la mierda','vete al diablo',
+  'vete ala mierda','vete al mierd4','andate ala mierda','andatee a la mierda',
+  'metete tu','que te jodan','te odio','eres una mierda','eres un imbécil',
+  'eres un idiota','eres un pendejo','eres un gonorrea','eres un malparido',
+  'sos un idiota','sos una idiota','sois unos idiotas','eres un malparido',
+  'la concha de tu madre','tu madre','tu puta madre','la puta madre',
+  'tu madre culiao','tu madre hp','me vale madre','me vale verga',
+  'toca la verga','chupa la verga','chupa esto','pela la verga','pela la bola',
+  'me la pelan','metaselo','metelo','metanse',
+  'q se jodan','k se jodan','qlos','q los','qlo','q lo',
+  // ── Autolesión y crisis ───────────────────────────────────────────────
+  'suicidio','suicidarme','me quiero matar','quiero morir','quiero morirme',
+  'me voy a matar','mátame','matarme','autolesion','autolesionarme',
+  // ── Drogas y variantes ────────────────────────────────────────────────
+  'droga','drogas','marihuana','marigu4na','mariguana','marywana','maryjuana',
+  'manjuana','mj','mary j','cocaina','cocaína','kokaina','kocaina','c0caina',
+  'k0kaina','koka','heroina','heroína','heroyna','her0ina',
+  'bazuco','bazuko','b4zuco','b4zuko','bazukoo','pegante',
+  'crack','krak','cr4ck','kr4k','lsd','meth','metanfetamina','anfetamina','fentanilo',
+  'alucinógeno','alucinogeno','éxtasis','extasis',
+  'perico','per1co','p3rico','merca','m3rca','blanca','yeyo','pase','pasecito',
+  // ── Violencia y variantes ─────────────────────────────────────────────
+  'bomba','explosivo','arma','pistola','revolver','metralleta','fusil',
+  'terrorismo','terrorista','ataque','atentar',
+  'matar','mat4r','m4tar','matarlos','matalos','te mato','te mat0','los mato',
+  'asesinar','as3sinar','4sesinar','asesinate','asesinatelos',
+  'violar','viol4r','vi0lar','violare','violarte',
+  'violación','violacion','acoso sexual',
+  // ── Sexual ────────────────────────────────────────────────────────────
+  'pornografía','pornografia','porno','desnudo','desnuda','sexo','sexting',
+  'nudes','nude','sexo oral','hacer el amor','coito',
+
+  // ── Variantes con números reemplazando letras (leet speak) ────────────
+  // mierda leet
+  'm13rda','m13rd4','mi3rd4','mi3rda','m1erd4','mi€rda','mierda!',
+  // puta leet
+  'p|_|ta','p|_|t4','pu+a','pu+4','puta!','put4!',
+  // verga leet
+  'v3rg4','b3rga','b3rg4','v€rga','v3rg@',
+  // hijueputa leet
+  'h1ju3put4','h1ju3puta','hiju3p|_|ta','h!jueputa','h!ju3put4',
+  // gonorrea leet
+  'g0n0rr34','g0norr3a','g0n0re4','g0n0rea',
+  // pendejo leet
+  'p3nd3jo','p3nd3j0','p€ndejo','p3nde jo',
+  // culo leet
+  'c|_|lo','ku|0','cu|0','c-u-l-o','c.u.l.o','kul0!',
+  // marica leet
+  'm4r1k4','m4r1ca','m@rica','m@rika','m@r1ca',
+  // idiota leet
+  '1d10ta','1di0ta','1d1ota','1d10t4',
+  // fuck leet
+  'f|_|ck','f|_|k','ph|_|ck','fu(k','fu©k','f*ck','f**k','f***','fuc*',
+  // shit leet
+  '$h1t','5h1t','5hit','$hit!','sh!t!',
+  // bitch leet
+  'b!t(h','b!tc#','b1t(h','bi7ch','b17ch',
+  // asshole leet
+  '4$$hole','@$$hole','a$$hole','ass#ole','a55h0l3',
+  // dick leet
+  'd!ck','d1(k','d!k','d|ck','d*ck',
+  // cock leet
+  'c0(k','©ock','c*ck','(ock',
+
+  // ── Separación con espacios, guiones, puntos ──────────────────────────
+  // mierda separada
+  'm i e r d a','m-i-e-r-d-a','m.i.e.r.d.a','mi er da','mier da',
+  // puta separada
+  'p u t a','p-u-t-a','p.u.t.a','pu ta','put a',
+  // verga separada
+  'v e r g a','v-e-r-g-a','v.e.r.g.a','ver ga','verg a',
+  // marica separada
+  'm a r i c a','m-a-r-i-c-a','ma rica','mari ca',
+  // pendejo separado
+  'p e n d e j o','p-e-n-d-e-j-o','pen dejo','pende jo',
+  // culo separado
+  'c u l o','c-u-l-o','c.u.l.o',
+  // gonorrea separada
+  'g o n o r r e a','g-o-n-o-r-r-e-a','gono rrea','gonor rea',
+  // hijueputa separada
+  'h i j u e p u t a','hijue puta','hiju eputa',
+  // fuck separado
+  'f u c k','f-u-c-k','f.u.c.k',
+  // shit separado
+  's h i t','s-h-i-t','s.h.i.t',
+  // bitch separado
+  'b i t c h','b-i-t-c-h','b.i.t.c.h',
+
+  // ── Repetición de letras (énfasis) ───────────────────────────────────
+  'mierdaaaa','mieeeerda','mierrrda','mierdaaa',
+  'putaaaa','puuuta','puttaaa','puutaaa',
+  'vergaaaa','veeerrga','verrgaa',
+  'gueevooon','wevoooon','huevooon','guevoooon',
+  'pendejooo','pendeejoo','pendeejooo',
+  'idiotaaa','idiootaaa','idiiota',
+  'maricaaaa','mariikaa','mariicaaa',
+  'gonorreaaaa','gonoorreaa',
+  'culoooo','cuuulo','culooo',
+  'hiijueputa','hijuueputa','hijueputtaa',
+  'malparidoo','malpariddoo','malparridoo',
+  'fuckkkk','fuuuck','fuccck','fukkkk',
+  'shiiit','shhhit','shiiiit',
+  'biiitch','biitch','bitchhhh',
+
+  // ── Abreviaciones y jerga colombiana/latina ───────────────────────────
+  'hputa','hpta','hptas','hputos','hijuep',
+  'gon','gonor','gonos','marica hp','malpa',
+  'plvt','plvts','pvt4','pvta','pvts',
+  'vrga','vrg','vrgz','vrgzo',
+  'mrd','mrda','mrd4',
+  'pndj','pndjo','pndeje',
+  'idot','idota','imbcl','imbcel',
+  'estpd','estpdo','estupd',
+  'wk','wkl','wkla','wklear','huevonada','guevonada',
+  'cagon','cagona','cagones','cagada','cagadas','cagao',
+  'sapo','sapas','sapos','sapear','sapeando',
+  'boludo','boluda','boludos','boludas','boludez',
+  'pelotudo','pelotuda','pelotudos','pelotudas',
+  'salame','salames','gil','giles','forro','forros',
+  'mogolico','mogolica','mogolicos','mogolicas',
+  'lameculo','lameculos','lametelo','lambeculos',
+  'hijuemadres','hijueputas','malparidos','malparidas',
+  'qlo','qliao','qliaos','qliado','qliada',
+  'culiados','culiadas','culiao',
+
+  // ── Insultos adicionales Colombia/Latino ──────────────────────────────
+  'careculo','care culo','cara de culo','carepicha',
+  'carepicha','caremonda','caremondas','carehpta',
+  'nochero','nochera','desgraciado','desgraciada','desgraciados',
+  'miserable','miserables','inepto','inepta','ineptos','ineptas',
+  'animals','animal hijueputa','bestia','bestias','bestial',
+  'tarado','tarada','tarados','taradas','tara2',
+  'mongolo','mongola','mongolos','mongolas',
+  'baboso','babosa','babosos','babosas','babosada',
+  'gallinazo','gallinazos','zopilote','buitre',
+  'gamín','gamin','gamines','gamine',
+  'ladron','ladrona','ladrones','ladronas','ladrón',
+  'rata','ratas','ratero','ratera','rateros','rateras',
+  'sapo hijueputa','sapo malparido','sapo gonorrea',
+
+  // ── Xenofobia y discriminación ────────────────────────────────────────
+  'negro hp','negro gonorrea','negro malparido',
+  'india hp','indio hp','indio malparido',
+  'veneco','venecos','veneca','venecas',
+  'sudaca','sudacas','sudaco',
+  'espalda mojada','espaldas mojadas',
+  'spic','spics','wetback','wetbacks','beaner','beaners',
+  'chink','chinks','gook','gooks',
+  'paki','pakis','towelhead','towelheads',
+  'gringo hp','gringo malparido',
+
+  // ── Amenazas y acoso ──────────────────────────────────────────────────
+  'te voy a matar','te voy a partir','te voy a romper',
+  'te voy a buscar','voy a ir por ti','ya sabes donde vives',
+  'cuídate','cuidate hijueputa','cuidate malparido',
+  'te voy a denunciar','voy a hackear','voy a hackarte',
+  'te reporto','te reportaré','sapo te reporto',
+  'te doy en la cara','te doy un puño','te rompo la cara',
+  'te golpeo','te pego','te doy una pela',
+
+  // ── Inglés adicional y variantes ─────────────────────────────────────
+  'wtaf','wth','stfd','pos','piss off','piss','pisser',
+  'dumbass','dumb ass','dumbasses','dumba55','dumb@ss',
+  'jackass','jack ass','jackasses','j4ckass',
+  'dipshit','dip shit','dipsh1t',
+  'scumbag','scum bag','scumbags',
+  'douchebag','douche bag','douchebags','douche',
+  'prick','pricks','pr1ck','twat','twats','tw@t',
+  'wanker','wankers','wank','wanks',
+  'tosser','tossers','toss','numpty','numpties',
+  'bellend','bell end','bellends','knob','knobs',
+  'arsehole','arseholes','arse','arses',
+  'fag','fags','f4g','f4gs',
+  'tranny','trannies','tr4nny',
+  'dyke','dykes','d1ke',
+  'spaz','spastic','spastics',
+  'mong','mongs','munter','munters',
+  'slag','slags','skank','skanks','sk4nk',
+  'ho','hoe','hoes','h0e','h0es',
+  'thot','th0t','thots',
+  'simp','simps','incel','incels',
+  'cuck','cucks','cuckold',
+
+  // ── Drogas adicionales y variantes ───────────────────────────────────
+  'olla','ollas','expendio','expendios',
+  'traqueto','traquetos','traqueta','camello','camellos','camellar',
+  'narco','narcos','narcotrafico','narcotráfico',
+  'sicario','sicarios','sicaria','sicarias',
+  'chorro','chorros','chorrar',
+  'basuco','pasta base','pasta bas3','pastilla','pastillas','pepas','pepa',
+  'tusi','tussi','rosada','2cb','2-cb',
+  'popper','poppers','nítrito','nitrito',
+  'barbitúrico','barbituriko','roofie','roofies',
+  'doping','dopar','doparse',
+
+  // ── Violencia adicional ───────────────────────────────────────────────
+  'masacre','masacrar','masacrarlos',
+  'torturar','tortura','torturas','torturarte',
+  'secuestrar','secuestro','secuestros',
+  'extorsionar','extorsión','extorsion',
+  'acosar','acoso','acosador','acosadora',
+  'amenazar','amenaza','amenazas','amenazarte',
+  'golpear','golpe','golpes','golpearte',
+  'apuñalar','apuñalear','cuchillo en mano',
+  'disparar','disparo','dispararte','te disparo',
+  'quemar','incendiar','incendio provocado',
+  'vandalismo','vandalo','vandalos',
+
+  // ── Frases ofensivas adicionales ─────────────────────────────────────
+  'cállate hijueputa','callate malparido','cierra la boca gonorrea',
+  'eres una porquería','eres un desastre','eres un inútil','eres una inutil',
+  'no sirves para nada','no vales nada','eres un fracaso',
+  'eres lo peor','eres basura','eres una basura',
+  'andate al diablo','vete al carajo','al carajo',
+  'que te den','que te jodan duro','que te revienten',
+  'muérete','muerate','ojala te mueras','ojala mueras',
+  'que te caiga un rayo','que te parta un rayo',
+  'te odio con toda el alma','te odio forever','te odio hp',
+  'lambón','lambon','lambona','lambones','lambonas','lambeculo',
+  'tierrero','tierreros','tierrera','tierreras',
+  'nerd hp','nerd malparido','feo malparido','fea malparida',
+  'gordo malparido','gorda malparida','gordo hp','gorda hp',
+  'enano malparido','enana malparida',
+  // frases de acoso escolar
+  'matate','matese','matense','hazte daño','hacete daño',
+  'nadie te quiere','todos te odian','no tienes amigos',
+  'eres un fracasado','eres una fracasada',
+
+  // ── GROSERÍAS NUEVAS + 3 VARIANTES MAL ESCRITAS CADA UNA ─────────────
+
+  // cabeza de pene / cabezón ofensivo
+  'cabeza de pene','cabeza de pene','kaveza de pene','kavesa de pene',
+  // pajero
+  'pajero','pajera','pajeros','paj3ro','p4jero','pajero','pajeras',
+  // pajuelazo
+  'pajuelazo','pajuelasos','pajuelaso','p4juelazo','pajuelazo',
+  // gonorreático
+  'gonorreático','gonorriatico','g0norreático','gonorreatiko','g0norreatico',
+  // mamagüevo
+  'mamagüevo','mamahuevo','mamaguevo','m4maguevo','mamaguebo','mamaguev0',
+  'mama güevo','mama huevo','mama guevo',
+  // comehuevo
+  'comehuevo','comeguevo','comeguebo','c0meguevo','c0mehuevo','comeguev0',
+  // comerecto
+  'comerecto','comerrecto','c0merecto','k0merecto','komerecto',
+  // lambeolo
+  'lambeolo','lambe olo','l4mbeolo','lambeol0','l4mbe0lo',
+  // come mierda
+  'comemierda','come mierda','k0memierda','comemierd4','c0memierda',
+  'komemierda','come mierd4','come-mierda',
+  // carechimba
+  'carechimba','care chimba','k4rechimba','carechimva','k4rechimva',
+  'carechiimba','care-chimba',
+  // chimba (en contexto ofensivo)
+  'chimba','chimbas','ch1mba','ch!mba','ch1mbas',
+  // huevón (más variantes)
+  'huevon','wevon','uevon','huev0n','w3von','u3von',
+  // bolsa
+  'bolsa','bolsas','bolsear','b0lsa','bolz4','bol5a',
+  // hueco
+  'hueco','huecos','hu3co','hu3k0','hu3cos',
+  // berraco / verraco (ofensivo)
+  'berraco','verraco','berracos','b3rraco','v3rraco','b3rrak0',
+  // soplapicha
+  'soplapicha','sopla picha','s0plapicha','5oplapicha','s0pla picha',
+  // picha
+  'picha','pichas','p1cha','p!cha','p1chas',
+  // remolacha (eufemismo vulgar)
+  'pichula','pichulas','p1chula','pichul4','p!chula',
+  // pinga
+  'pinga','pingas','p1nga','p!nga','p1ngas',
+  // bicho (ofensivo)
+  'bicho','bichos','b1cho','b!cho','b1chos',
+  // piroba
+  'piroba','pirobas','p1roba','p!roba','pir0ba',
+  // pirobear
+  'pirobear','pirobeo','p1robear','pir0bear','pirobeando',
+  // ramera
+  'ramera','rameras','r4mera','ram3ra','r4meras',
+  // fulana de tal (ofensivo contextual)
+  'zorra','zorras','zorro','zorros','z0rra','z0rras','z0rro',
+  // maldita sea
+  'maldita sea','maldita sea!','m4ldita sea','maldit4 sea','mald1ta sea',
+  // recontraputamadre
+  'recontraputamadre','recontraputa madre','r3contraputamadre',
+  'rekontraputa','r3kontraputamadre',
+  // puta vida
+  'puta vida','put4 vida','puta vid4','put4 vid4','puta v1da',
+  // maldición
+  'maldición','maldicion','m4ldicion','mald1cion','m4ld1cion',
+  // carajo
+  'carajo','carajos','c4rajo','kar4jo','k4rajo',
+  'al carajo','vete al carajo','mandalo al carajo','mandala al carajo',
+  'al kar4jo','al c4rajo','al k4rajo',
+  // mecagüen
+  'mecagüen','mecaguen','m3cagüen','m3caguen','mekaguen',
+  // mecago
+  'mecago','me cago','m3cago','m3 cago','mekago',
+  // nos importa mierda
+  'nos importa mierda','no me importa mierda','me importa una mierda',
+  'n0s importa mierda','me importa mierd4','no me importa mierd4',
+  // cojudo
+  'cojudo','cojuda','cojudos','cojudas','k0judo','c0judo','k0juda',
+  // soplapolla
+  'soplapolla','sopla polla','s0plapolla','soplapoll4','s0pla polla',
+  // gilipollez
+  'gilipollez','gilipolleces','g1lipollez','g1lipolleces','jilipollez',
+  // comepollas
+  'comepollas','come pollas','c0mepollas','comep0llas','k0mepollas',
+  // putísimo
+  'putísimo','putisimo','putísima','putisima','put1simo','put1sima',
+  // cabrío
+  'cabrío','cabrio','c4brio','k4brio','cabrío',
+  // recontra
+  'recontra','r3contra','rekontra','r3kontra','r3c0ntra',
+  // que te parta
+  'que te parta','q te parta','k te parta','que t3 parta','k t3 parta',
+  // eres un hdp
+  'eres un hdp','sos un hdp','es un hdp','sos hdp','eres hdp',
+  'er3s un hdp','s0s hdp','3r3s hdp',
+  // grande de mierda
+  'grandísimo hijueputa','grandísimo malparido','grandísimo gonorrea',
+  'grandisimo hijueputa','grandisimo malparido','grand1simo hijueputa',
+  // tal por cual
+  'tal por cual','tarada de mierda','tarado de mierda',
+  't4rada de mierda','tar4do de mierda','tal p0r cual',
+  // lambón de mierda
+  'lambón de mierda','lambon de mierda','lambon de mierd4','l4mbon de mierda',
+  // chúpame
+  'chúpame','chupame','ch-pame','chup4me','ch1pame',
+  'chúpame esto','chupame esto','chup4me esto','chúpame eso','chupame eso',
+  // meteme
+  'méteme','meteme','m3teme','m3teme esto','met3me','meteme eso',
+  // órale (eufemismo)
+  // más insultos latinos
+  'buey','güey','guey','wey','bey','g-üey','g.uey',
+  // tonto
+  'tonto','tonta','tontos','tontas','t0nto','t0nta','t0nt0',
+  // burro
+  'burro','burra','burros','burras','b-urro','bvro','burr0',
+  // asno
+  'asno','asna','asnos','asnas','4sno','45no','4zno',
+  // animal de mierda
+  'animal de mierda','animal de mierd4','4nimal de mierda','anim4l de mierda',
+  // bestia parda
+  'bestia parda','bestia de mierda','b3stia de mierda','bestia malparida',
+  // come basura
+  'come basura','comebasura','c0mebasura','come b4sura','k0mebasura',
+  // lárgate
+  'lárgate','largate','l4rgate','larg4te','l4rg4te',
+  'lárgate de aquí','largate de aqui','l4rgate de aqui','larg4te de aki',
+  // infeliz
+  'infeliz','infelices','1nfeliz','1nfelices','1nf3liz',
+  // energúmeno
+  'energúmeno','energumeno','en3rgumeno','3nergumeno','energ-meno',
+  // miserable de mierda
+  'miserable de mierda','miserable de mierd4','mis3rable de mierda','miser4ble de mierda',
+  // imbécil de mierda
+  'imbécil de mierda','imbecil de mierda','imb3cil de mierda','imbecil de mierd4',
+  // subnormal de mierda
+  'subnormal de mierda','subn0rmal de mierda','subnoormal de mierda','subnormal de mierd4',
+  // capullo de mierda
+  'capullo de mierda','capullo de mierd4','c4pullo de mierda','capull0 de mierda',
+  // culo de mierda
+  'culo de mierda','culo de mierd4','kulo de mierda','cul0 de mierda',
+  // puta de mierda
+  'puta de mierda','puta de mierd4','put4 de mierda','put4 de mierd4',
+  // malparido de mierda
+  'malparido de mierda','malparida de mierda','malp4rido de mierda','malpar1do de mierda',
+  // gonorrea de mierda
+  'gonorrea de mierda','gonorrea de mierd4','g0norrea de mierda','gonorre4 de mierda',
+  // hijueputa de mierda
+  'hijueputa de mierda','hijueputa de mierd4','hijueput4 de mierda','h1jueputa de mierda',
+
+  // ── INSULTOS EN INGLÉS ADICIONALES + VARIANTES ────────────────────────
+  // bloody hell
+  'bloody hell','bl00dy hell','bl0ody hell','bl00dy h3ll',
+  // bollocks
+  'bollocks','bol locks','b0llocks','b0ll0cks','b0llox',
+  // bugger
+  'bugger','buggers','bugg3r','bugg3rs','b-ugger',
+  // sod off
+  'sod off','sod 0ff','s0d off','s0d 0ff','sodoff',
+  // son of a bitch
+  'son of a bitch','son of a b1tch','son of a b!tch','s0n of a bitch','s0n 0f a b1tch',
+  // go to hell
+  'go to hell','go 2 hell','g0 to hell','go t0 hell','g0 t0 hell',
+  // kiss my ass
+  'kiss my ass','k1ss my ass','kiss my @ss','k!ss my ass','k1ss my @ss',
+  // eat shit
+  'eat shit','eat sh1t','3at shit','eat $hit','3at $h1t',
+  // piece of shit
+  'piece of shit','pi3ce of shit','piece 0f shit','pi3ce 0f $hit','piece of $hit',
+  // piece of crap
+  'piece of crap','pi3ce of crap','piece 0f crap','pi3ce 0f cr4p','pieceof crap',
+  // crap
+  'crap','craps','cr4p','cr@p','cr4ps',
+  // hell
+  'hell','h3ll','h-ell','h.ell','hellll',
+  // damn you
+  'damn you','d4mn you','damn y0u','d4mn y0u','damnit','d4mn1t',
+  // go fuck yourself
+  'go fuck yourself','go fck yourself','g0 fuck yourself','go fvck yourself','gfy',
+  // screw you
+  'screw you','screw u','scr3w you','scr3w u','screw y0u',
+  // shut up
+  'shut up','shut up!','sh-ut up','shu7 up','sh*t up',
+  // idiot (más variantes)
+  '1d10t','1di0t','1d!ot','idyot','1dyot',
+  // stupid (más variantes)
+  'stupid','st-upid','5tupid','stup1d','stuupid',
+  // loser (más variantes)
+  'l0ser','l-oser','looser','l0oser','l05er',
+  // ugly
+  'ugly','ugl-y','ugl1','u-gly','uglly',
+  // fat ass
+  'fat ass','fat @ss','f4t ass','fat 4ss','fatass',
+  'fat bitch','f4t bitch','fat b1tch','fat b!tch','fatbitch',
+  // dumb
+  'dumb','dum','dumm','d-umb','d-umm',
+  'dumbass','dumba55','dumb@ss','dum ass','dumass',
+  // piss
+  'piss','pissed','p1ss','p!ss','piiss',
+  'piss off','p1ss off','p!ss off','piss 0ff','pi5s off',
+  // hell no
+  'hell no','h3ll no','hell n0','h3ll n0','hellno',
+  // jerk
+  'jerk','jerks','j3rk','j3rks','j-erk',
+  'jerk off','j3rk off','jerk 0ff','j3rk 0ff','jerkoff',
+  // creep
+  'creep','creeps','cr3ep','cr33p','cr-eep',
+  // freak
+  'freak','freaks','fr3ak','fr-eak','fr34k',
+  // pervert
+  'pervert','perverts','perv','p3rvert','p3rv',
+  // pathetic
+  'pathetic','path3tic','p4thetic','path3t1c','p4th3t1c',
+
+  // ── GROSERÍAS Y VULGARIDADES EN PORTUGUÉS ────────────────────────────
+  'porra','porras','p0rra','p0rras','porr4',
+  'merda','merdas','m3rda','m3rdas','merd4',
+  'caralho','car4lho','c4ralho','car4lh0','caralh0',
+  'filho da puta','filha da puta','filh0 da puta','filho d4 puta','filh0 d4 puta',
+  'vai se fuder','vai s3 fuder','v4i se fuder','vai se fud3r','v4i s3 fuder',
+  'cuzão','cuzon','cuz4o','cuz-ao','cuzao',
+  'viado','viados','vi4do','vi4dos','viad0',
+  'vagabundo','vagabunda','v4gabundo','vagabund0','v4gabund0',
+  'arrombado','arrombada','4rrombado','arr0mbado','4rr0mbado',
+  'bosta','bostas','b0sta','b05ta','b0stas',
+  'puta merda','puta merd4','put4 merda','put4 merd4','puta m3rda',
+
+  // ── GROSERÍAS EN FRANCÉS ──────────────────────────────────────────────
+  'merde','m3rde','m-erde','merd3','m3rd3',
+  'putain','put4in','put4!n','putt ain','put-ain',
+  'connard','conn4rd','c0nnard','conn4r','k0nnard',
+  'salaud','s4laud','sal4ud','salauds','s4l4ud',
+  'va te faire foutre','va te f4ire foutre','va te faire f0utre','va t3 faire foutre',
+
+  // ── GROSERÍAS EN ITALIANO ─────────────────────────────────────────────
+  'vaffanculo','vaffancul0','v4ffanculo','vaff4nculo','vaffancul',
+  'cazzo','cazz0','c4zzo','cazz','c4zz0',
+  'stronzo','str0nzo','str-onzo','stronz0','str0nz0',
+  'figlio di puttana','figl10 di puttana','figlio d1 puttana','figlio di putt4na',
+  'minchia','minchi4','m1nchia','minch1a','m1nchi4',
+
+  // ── MÁS VARIANTES COLOMBIANAS ────────────────────────────────────────
+  // mamera
+  'mamera','mameras','m4mera','mam3ra','m4m3ra',
+  // mostro (ofensivo)
+  'mostro malparido','mostro hijueputa','mostro gonorrea',
+  'm0stro malparido','m0stro hijueputa','m0stro gonorrea',
+  // guache
+  'guache','guaches','gu4che','gu4ches','guach3',
+  // tierrero malparido
+  'tierrero malparido','tierreros hijueputas','tierrero gonorrea',
+  'ti3rrero malparido','tierr3ro hijueputa','ti3rrero g0norrea',
+  // sicario malparido
+  'sicario malparido','sicario hijueputa','sicario gonorrea',
+  's1cario malparido','s1cario hijueputa','s1cario g0norrea',
+  // gamín malparido
+  'gamin malparido','gamin hijueputa','gamin gonorrea',
+  'g4min malparido','gam1n hijueputa','g4m1n gonorrea',
+  // ñero / ñera
+  'ñero','ñera','ñeros','ñeras','nero malparido','nera hijueputa',
+  'n3ro','n3ra','n-ero','n-era','nero gonorrea',
+  // godo (peyorativo)
+  'godo malparido','goda malparida','godo hijueputa',
+  'g0do malparido','g0da malparida','god0 hijueputa',
+  // desechable
+  'desechable','desechables','des3chable','des3chables','desech4ble',
+  // quiubo pirobo
+  'quiubo pirobo','quiubo piroba','kiubo pirobo','kiubo piroba',
+  'ki-ubo pirobo','quiub0 pirobo','k1ubo pirobo',
+  // viejaguevo
+  'viejaguevo','vieja guevo','viej4guevo','viej4 guevo','vieja gu3vo',
+  // paila
+  'paila malparido','paila hijueputa','paila gonorrea',
+  'p4ila malparido','pa1la hijueputa','p4il4 gonorrea',
+  // pirobo de mierda
+  'pirobo de mierda','piroba de mierda','p1robo de mierda',
+  'pirobo de mierd4','p1r0bo de mierda','p1roba de mierd4',
+  // gonorrea malparida
+  'gonorrea malparida','gonorrea malparido','gonorre4 malparida',
+  'g0norrea malparida','g0norrea malparido','gonorre4 malparido',
+  // carechimba malparido
+  'carechimba malparido','carechimba hijueputa','carechimba gonorrea',
+  'k4rechimba malparido','carechimba malpar1do','k4rechimba hijueputa',
+  // maricón de mierda
+  'maricón de mierda','maricon de mierda','marik0n de mierda',
+  'maricón de mierd4','maricon de mierd4','marik0n de mierd4',
+  // boludo de mierda
+  'boludo de mierda','boluda de mierda','b0ludo de mierda',
+  'boludo de mierd4','b0luda de mierda','b0ludo de mierd4',
+  // pelotudo de mierda
+  'pelotudo de mierda','pelotuda de mierda','pelotud0 de mierda',
+  'pelotudo de mierd4','p3lotudo de mierda','pelot-do de mierda',
+
+  // ── INSULTOS POR APARIENCIA FÍSICA ───────────────────────────────────
+  'gordo hijueputa','gorda hijueputa','gordo malparido','gorda malparida',
+  'g0rdo hijueputa','g0rda hijueputa','g0rdo malparido',
+  'feo malparido','fea malparida','feo hijueputa','fea hijueputa',
+  'f3o malparido','f3a malparida','f30 hijueputa','f30 hijueputa',
+  'enano malparido','enana malparida','enano hijueputa','enana hijueputa',
+  'en4no malparido','en4na malparida','en4no hijueputa',
+  'calvo malparido','calva malparida','calvo hijueputa',
+  'c4lvo malparido','c4lva malparida','c4lvo hijueputa',
+  'cojo malparido','coja malparida','cojo hijueputa',
+  'c0jo malparido','c0ja malparida','c0jo hijueputa',
+
+  // ── NUEVAS FRASES Y EXPRESIONES VULGARES ─────────────────────────────
+  'que se jodan todos','que se jodan todas','q se jodan todos',
+  'que se jodan tod0s','k se jodan todos','que s3 jodan todos',
+  'la remadre que te parió','la reputamadre','la reputa madre',
+  'la r3madre que te pario','la r3putamadre','la r3puta madre',
+  'a la mierda todo','a la mierda todos','a la mierda con todo',
+  '4 la mierda todo','a la mierd4 todo','4 la mierd4 todo',
+  'chupen ese','chupen eso','chup3n ese','chup3n eso','chupen es3',
+  'jódanse','jodanse','j0dense','j0danse','j-odanse',
+  'que les den','que l3s den','k les den','que les d3n','k l3s den',
+  'al diablo todos','al diablo con todos','al diablo con todo',
+  'al di4blo todos','4l diablo todos','4l di4blo todos',
+  'cállense hijueputas','callense hijueputas','callense malparidos',
+  'c4llense hijueputas','call3nse hijueputas','c4llense malparidos',
+  'váyanse a la mierda','vayanse a la mierda','v4yanse a la mierda',
+  'váyanse a la mierd4','vay4nse a la mierda','v4y4nse a la mierd4',
+  'que asco son','que asco eres','q asco son','q asco eres',
+  'qu3 asco son','k asco son','k asco eres','qu3 asco eres',
+  'eres un completo idiota','eres una completa idiota',
+  '3r3s un completo idiota','eres un complet0 idiota','3r3s una completa idiota',
+  'te voy a partir el alma','te voy a destrozar','te voy a arruinar',
+  't3 voy a partir el alma','te v0y a destrozar','t3 voy a destrozar',
+  'te voy a joder la vida','te voy a joder','me las pagas',
+  't3 voy a joder la vida','te v0y a joder','m3 las pagas',
+
+  // ── COMBINACIONES CON ACRÓNIMOS Y ABREVIATURAS ───────────────────────
+  'q.e.p.d tu gonorrea','omfg malparido','wtf hijueputa','stfu malparido',
+  'lmao gonorrea','lmfao puta','smh malparido','fml gonorrea',
+  'omfg hijueputa','wtf gonorrea','stfu hijueputa','fml malparido',
+  'kys hijueputa','kys malparido','kys gonorrea','kys puta',
+  'k-y-s','k.y.s','k y s',
+
+  // ── PALABRAS SOECES ADICIONALES Y SUS VARIANTES ──────────────────────
+  // tripas de la madre
+  'tripas de la madre','tripas de tu madre','tr1pas de la madre',
+  'tripas de tu m4dre','tr1pas de tu madre',
+  // que te zurzan
+  'que te zurzan','q te zurzan','k te zurzan','qu3 te zurzan','k t3 zurzan',
+  // escoria
+  'escoria','escorias','eskor1a','3scoria','3skorias',
+  'eres escoria','sos escoria','son escoria','er3s escoria','s0s escoria',
+  // desperdicio
+  'desperdicio de persona','desperdicio humano','desperdicio de espacio',
+  'd3sperdicio de persona','desp3rdicio humano','d3sp3rdicio humano',
+  // porquería
+  'porquería','porqueria','eres una porquería','porquer1a','p0rqueria',
+  'sos una porquería','son una porquería','s0s una porqueria','s0n una porqueria',
+  // basura humana
+  'basura humana','eres basura humana','b4sura humana','basur4 humana','b4sur4 humana',
+  // maldito bastardo
+  'bastardo','bastarda','bastardos','bastardas','b4stardo','b4starda',
+  'bastard0','b4stard0','maldito bastardo','maldita bastarda',
+  // canalla
+  'canalla','canallas','c4nalla','can4lla','can4ll4',
+  'eres un canalla','sos un canalla','er3s un canalla','s0s un canalla',
+  // hdp (todas las variantes)
+  'hdp','h.d.p','h-d-p','hijo de puta','hijo de p','hija de puta',
+  'h1jo de puta','hijo d3 puta','h1j0 de puta',
+  // malnacido
+  'malnacido','malnacida','malnacidos','malnacidas',
+  'm4lnacido','m4lnacida','maln4cido','maln4cida',
+  // ruin
+  'ruin','ruines','eres un ruin','r-uin','rvin',
+  // vil
+  'vil','viles','eres un vil','v1l','v-il',
+  // perro hp
+  'perro hp','perra hp','perro hijueputa','perra hijueputa',
+  'p3rro hp','p3rra hp','perr0 hp','perr0 hijueputa',
+  // puto el que lo lea
+  'puto el que lo lea','puta la que lo lea',
+  'put0 el que lo lea','puta l4 que lo lea','puto el que l0 lea',
+  // cagó (usos ofensivos)
+  'te cagaste','te cagó','se cago','se cagó',
+  't3 cagaste','te cag0','s3 cago','s3 cag0',
+  // podrido
+  'podrido','podrida','podridos','podridas',
+  'p0drido','p0drida','podr1do','podr1da',
+  'eres un podrido','sos un podrido','er3s un podrido','s0s un podrido',
+  // que asco de persona
+  'que asco de persona','q asco de persona','k asco de persona',
+  'qu3 asco de persona','que 4sco de persona','k 4sco de persona',
+  // monstruo
+  'monstruo malparido','monstruo hijueputa','monstruo gonorrea',
+  'm0nstruo malparido','monstrvo hijueputa','m0nstrvo gonorrea',
+  // eres lo peor del mundo
+  'eres lo peor del mundo','sos lo peor del mundo',
+  '3r3s lo peor del mundo','s0s lo peor del mundo','eres l0 peor del mundo',
+
+  // ── 200 MÁS EN ESPAÑOL + VARIANTES MAL ESCRITAS ──────────────────────
+
+  // chingarse (Mexico/CA)
+  'chingarse','ch1ngarse','ch1ng4rse',
+  // vergüenza ajena (uso ofensivo)
+  'vergüenza de persona','verguen2a de persona','verg-uenza de persona',
+  // puto asco
+  'puto asco','put0 asco','put0 4sco',
+  // grandísimo imbécil
+  'grandísimo imbécil','grandisimo imbecil','gr4ndisimo imbecil',
+  // perra vida
+  'perra vida','perra vid4','p3rra vida',
+  // tragasables
+  'tragasables','tragasable','tr4gasables',
+  // come-cuento
+  'come cuento','comecuento','c0mecuento',
+  // soplador
+  'soplador','sopl4dor','s0plador',
+  // lengualarga
+  'lengualarga','lengua larga','lengu4larga',
+  // saquisuqui (vulgar)
+  'saquisuqui','saki suki','s4kisuki',
+  // pelado grosero
+  'pelado grosero','pel4do grosero','pelado gr0sero',
+  // maldita escoria
+  'maldita escoria','maldita esc0ria','m4ldita escoria',
+  // payaso de mierda
+  'payaso de mierda','payaso de mierd4','p4yaso de mierda',
+  // fantoche
+  'fantoche malparido','f4ntoche malparido','fantoche m4lparido',
+  // maldito payaso
+  'maldito payaso','m4ldito payaso','maldito p4yaso',
+  // cagada de persona
+  'cagada de persona','cag4da de persona','c4gada de persona',
+  // puerco
+  'puerco','puercos','puerca','pu3rco','pu3rca',
+  'puerco malparido','puerca malparida','pu3rco malparido',
+  // cochino
+  'cochino','cochina','cochinos','c0chino','c0china',
+  'cochino malparido','cochina malparida','c0chino malparido',
+  // marrano
+  'marrano','marrana','marranos','m4rrano','m4rrana',
+  'marrano malparido','marrana malparida','m4rrano malparido',
+  // chancho
+  'chancho','chancha','chanchos','ch4ncho','ch4ncha',
+  'chancho malparido','chancha malparida','ch4ncho malparido',
+  // sucio
+  'sucio malparido','sucia malparida','s-ucio malparido',
+  'suc10 malparido','5ucio malparido','5ucia malparida',
+  // pedorro
+  'pedorro','pedorra','pedorros','p3dorro','p3dorra',
+  'pedorro malparido','pedorra malparida','p3dorro malparido',
+  // pedazo de mierda
+  'pedazo de mierda','pedazo de mierd4','p3dazo de mierda',
+  // escupo
+  'te escupo','t3 escupo','te 35cupo',
+  // apestoso
+  'apestoso malparido','apestosa malparida','ap3stoso malparido',
+  'ap35toso malparido','apest0so malparido','ap3st0sa malparida',
+  // inepto de mierda
+  'inepto de mierda','inepta de mierda','1nepto de mierda',
+  'inept0 de mierda','1nept0 de mierda','inepto de mierd4',
+  // traidor
+  'traidor malparido','traidora malparida','tr4idor malparido',
+  'tra1dor malparido','tr4id0r malparido','traidora malpar1da',
+  // falso
+  'falso malparido','falsa malparida','f4lso malparido',
+  'fals0 malparido','f4ls0 malparido','falsa malpar1da',
+  // hipócrita
+  'hipócrita','hipocrita','h1pocrita','hip0crita','h1p0crita',
+  'hipócrita malparido','hipocrita malparido','h1pocrita malparido',
+  // mentiroso
+  'mentiroso malparido','mentirosa malparida','m3ntiroso malparido',
+  'ment1roso malparido','m3nt1roso malparido','mentirosa malpar1da',
+  // tramposo
+  'tramposo malparido','tramposa malparida','tr4mposo malparido',
+  'tramp0so malparido','tr4mp0so malparido','tramposa malpar1da',
+  // cobarde
+  'cobarde malparido','cobarde malparida','c0barde malparido',
+  'c0barde malparida','cob4rde malparido','cobarde malpar1do',
+  // gallina (insulto)
+  'gallina hijueputa','gallina malparido','g4llina hijueputa',
+  'gall1na hijueputa','g4ll1na hijueputa','gallina malpar1do',
+  // rajón
+  'rajón','rajon','raj0n','r4jon','r4j0n',
+  'rajón malparido','rajon malparido','r4jon malparido',
+  // cagón
+  'cagón','cagon','c4gon','cag0n','c4g0n',
+  'cagón malparido','cagon malparido','c4gon malparido',
+  // miedoso
+  'miedoso malparido','miedosa malparida','m1edoso malparido',
+  'mied0so malparido','m1ed0so malparido','miedosa malpar1da',
+  // llorica
+  'llorica malparido','llorica malparida','ll0rica malparido',
+  'llor1ca malparido','ll0r1ca malparido','llorica malpar1da',
+  // idiota de mierda
+  'idiota de mierda','idiota de mierd4','1diota de mierda',
+  'idiot4 de mierda','1diot4 de mierda','idi0ta de mierda',
+  // imbécil de remate
+  'imbécil de remate','imbecil de remate','1mbecil de remate',
+  'imb3cil de remate','1mb3cil de remate','imbecil de rem4te',
+  // animal sin cerebro
+  'animal sin cerebro','4nimal sin cerebro','anim4l sin cerebro',
+  // bruto
+  'bruto malparido','bruta malparida','br-uto malparido',
+  'brut0 malparido','br-ut0 malparido','bruta malpar1da',
+  // torpe
+  'torpe malparido','torpe malparida','t0rpe malparido',
+  'torpe malpar1do','t0rpe malpar1da','torpe malpar1da',
+  // bestia sin modales
+  'bestia sin modales','b3stia sin modales','bestia s1n modales',
+  // come ajo
+  'comeajo','come ajo','c0meajo',
+  // sietemesino
+  'sietemesino','sietemesina','s13temesino','si3temesino','sietem3sino',
+  // muerto de hambre
+  'muerto de hambre malparido','mu3rto de hambre malparido','muerto de h4mbre malparido',
+  // paria
+  'paria malparido','paria hijueputa','p4ria malparido',
+  'par1a malparido','p4r1a malparido','paria malpar1do',
+  // indigente
+  'indigente malparido','1ndigente malparido','ind1gente malparido',
+  'indigen te malparido','1nd1gente malparido','indigente malpar1do',
+  // vago
+  'vago malparido','vaga malparida','v4go malparido',
+  'vag0 malparido','v4g0 malparido','vaga malpar1da',
+  // flojo
+  'flojo malparido','floja malparida','fl0jo malparido',
+  'floj0 malparido','fl0j0 malparido','floja malpar1da',
+  // inútil de mierda
+  'inútil de mierda','inutil de mierda','1nutil de mierda',
+  'inutil de mierd4','1nut1l de mierda','inut1l de mierda',
+  // ñoño
+  'ñoño malparido','ñoña malparida','noño malparido',
+  'n0ño malparido','nono malparido','ñoño malpar1do',
+  // lambeculos (más variantes)
+  'lame culos','lameculos','l4meculos',
+  // chupamedias
+  'chupamedias','chupa medias','chup4medias',
+  'chupamedias malparido','chupa medias malparido','chup4medias malparido',
+  // arrastrado
+  'arrastrado malparido','arrastrada malparida','4rrastrado malparido',
+  'arr4strado malparido','4rr4strado malparido','arrastrada malpar1da',
+  // rastrero
+  'rastrero malparido','rastrera malparida','r4strero malparido',
+  'rastr3ro malparido','r4str3ro malparido','rastrera malpar1da',
+  // ordinario
+  'ordinario malparido','ordinaria malparida','0rdinario malparido',
+  'ordin4rio malparido','0rdin4rio malparido','ordinaria malpar1da',
+  // vulgar
+  'vulgar malparido','vulgar malparida','v-ulgar malparido',
+  'vulg4r malparido','v-ulg4r malparido','vulgar malpar1da',
+  // atrevido
+  'atrevido malparido','atrevida malparida','4trevido malparido',
+  'atrev1do malparido','4trev1do malparido','atrevida malpar1da',
+  // desvergonzado
+  'desvergonzado','desvergonzada','d3svergonzado',
+  'desv3rgonzado malparido','desverg0nzado malparido','d3sverg0nzado malparido',
+  // irrespetuoso
+  'irrespetuoso malparido','irrespetuosa malparida','1rrespetuoso malparido',
+  'irresp3tuoso malparido','1rresp3tuoso malparido','irrespetuosa malpar1da',
+  // grosero de mierda
+  'grosero de mierda','grosera de mierda','gr0sero de mierda',
+  'gros3ro de mierda','gr0s3ro de mierda','grosero de mierd4',
+  // malcriado
+  'malcriado malparido','malcriada malparida','m4lcriado malparido',
+  'malcri4do malparido','m4lcri4do malparido','malcriada malpar1da',
+  // pelele
+  'pelele malparido','p3lele malparido','pel3le malparido',
+  // eres una lacra
+  'eres una lacra','sos una lacra','er3s una lacra',
+  's0s una lacra','eres un4 lacra','s0s un4 lacra',
+  // gentuza
+  'gentuza','gentu2a','g3ntuza',
+  'son gentuza','eres gentuza','s0n gentuza',
+  // sabandija
+  'sabandija malparido','sab4ndija malparido','sab4nd1ja malparido',
+  // alimaña
+  'alimaña malparido','alim4ña malparido','4limaña malparido',
+  // parásito
+  'parásito malparido','parasito malparido','par4sito malparido',
+  'paras1to malparido','p4rasito malparido','parásito malpar1do',
+  // sanguijuela
+  'sanguijuela malparido','sanguj3la malparido','s4nguijuela malparido',
+  // repugnante
+  'repugnante malparido','repugnante malparida','r3pugnante malparido',
+  'repugn4nte malparido','r3pugn4nte malparido','repugnante malpar1do',
+  // asqueroso
+  'asqueroso malparido','asquerosa malparida','4squeroso malparido',
+  'asquer0so malparido','4squer0so malparido','asquerosa malpar1da',
+  // horripilante
+  'horripilante malparido','horripilante gonorrea','h0rripilante malparido',
+  // nauseabundo
+  'nauseabundo','nause4bundo','naus3abundo',
+  // asco de ser humano
+  'asco de ser humano','4sco de ser humano','asco de s3r humano',
+  // escremento (sic)
+  'excremento humano','excr3mento humano','excrement0 humano',
+  // desecho humano
+  'desecho humano','desech0 humano','d3secho humano',
+  // residuo humano
+  'residuo humano','residu0 humano','r3siduo humano',
+  // inservible
+  'inservible malparido','inserv1ble malparido','1nservible malparido',
+  // hazmerreír
+  'hazmerreír malparido','hazmerreir malparido','hazmerre1r malparido',
+  // ridículo
+  'ridículo malparido','ridiculo malparido','r1diculo malparido',
+  'rid1culo malparido','r1d1culo malparido','ridículo malpar1do',
+  // esperpento
+  'esperpento malparido','esp3rpento malparido','esperp3nto malparido',
+  // espantapájaros
+  'espantapájaros malparido','espantapajaros malparido','esp4ntapajaros malparido',
+  // mascarón
+  'mascarón malparido','mascaron malparido','m4scaron malparido',
+  // monstruo de malparido
+  'monstruo malparido','monstrvo malparido','m0nstrvo malpar1do',
+  // que te caiga un bus
+  'que te caiga un bus','k te caiga un bus','qu3 te caiga un bus',
+  // que te atropellen
+  'que te atropellen','k te atropellen','qu3 te atropellen',
+  // que te parta un camión
+  'que te parta un camion','k te parta un camion','qu3 te parta un camion',
+  // ojalá te pise un carro
+  'ojala te pise un carro','ojalá te pise un carro','ojal4 te pise un carro',
+  // vete pa la mierda
+  'vete pa la mierda','vete pa la mierd4','v3te pa la mierda',
+  // ándate pa la mierda
+  'andate pa la mierda','ándate pa la mierda','4ndate pa la mierda',
+  // no me hagas nada gonorrea
+  'no me hagas nada gonorrea','no me hag4s nada gonorrea','n0 me hagas nada gonorrea',
+  // coma mierda
+  'coma mierda','coma mierd4','c0ma mierda',
+  // chupe
+  'chupe eso','chupe esto','chup3 eso',
+  // que dolor tan hijueputa
+  'que dolor tan hijueputa','q dolor tan hijueputa','qu3 dolor tan hijueputa',
+  // carechimba malparido
+  'carechimba malparido gonorrea','karechimba malparido','k4rechimba gonorrea',
+  // hijueputa gonorrea
+  'hijueputa gonorrea malparido','hijueput4 gonorrea','h1jueputa gonorrea',
+];
+
+function contieneObscenidad(texto){
+  const t = texto.toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'') // quitar tildes
+    .replace(/[^a-z0-9\s]/g,' ');                    // normalizar símbolos
+  for(const p of PALABRAS_BLOQUEADAS){
+    const patron = p.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\s]/g,' ');
+    // Buscar como palabra completa O como subcadena para palabras cortas
+    const regex = patron.length <= 4
+      ? new RegExp(patron.replace(/\s+/g,'\\s+'))
+      : new RegExp('(?:^|\\s|[^a-z])' + patron.replace(/\s+/g,'\\s+') + '(?:$|\\s|[^a-z])');
+    if(regex.test(' '+t+' ')) return true;
+  }
+  return false;
+}
+
+function mostrarAlertaObscenidad(){
+  // Eliminar alerta previa si existe
+  const prev = document.getElementById('alerta-obscenidad');
+  if(prev) prev.remove();
+  const alerta = document.createElement('div');
+  alerta.id = 'alerta-obscenidad';
+  alerta.style.cssText = `
+    position:fixed; bottom:100px; left:50%; transform:translateX(-50%);
+    background:linear-gradient(135deg,#7d1c1c,#c0392b);
+    color:#fff; padding:14px 24px; border-radius:12px;
+    font-family:'DM Sans',sans-serif; font-size:13px; font-weight:500;
+    box-shadow:0 8px 32px rgba(192,57,43,.5);
+    border:1px solid rgba(255,100,100,.3);
+    z-index:9999; text-align:center; max-width:340px; width:90%;
+    animation:alerta-in .3s cubic-bezier(.34,1.56,.64,1) both;
+  `;
+  alerta.innerHTML = `⚠️ <strong>Mensaje bloqueado</strong><br>
+    <span style="font-size:12px;opacity:.9">Por favor usa un lenguaje respetuoso. Este asistente es un espacio escolar.</span>`;
+  document.body.appendChild(alerta);
+  const style = document.createElement('style');
+  style.textContent = `@keyframes alerta-in{from{opacity:0;transform:translateX(-50%) translateY(20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}`;
+  document.head.appendChild(style);
+  setTimeout(()=>{
+    alerta.style.transition='opacity .4s ease, transform .4s ease';
+    alerta.style.opacity='0';
+    alerta.style.transform='translateX(-50%) translateY(10px)';
+    setTimeout(()=>alerta.remove(),400);
+  }, 3500);
+}
+// ── FIN FILTRO ───────────────────────────────────────────────────
+
 async function enviarMensaje(){
   if(esperando)return;
   const inp=document.getElementById('texto-input');
   const msg=inp.value.trim();
   if(!msg)return;
+  // Verificar filtro de palabras
+  if(contieneObscenidad(msg)){
+    mostrarAlertaObscenidad();
+    return; // No limpiar el input para que el usuario pueda corregirlo
+  }
   inp.value=''; inp.style.height='auto';
   document.getElementById('btn-enviar').disabled=true;
   esperando=true;
