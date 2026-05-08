@@ -80,11 +80,6 @@ CIERRE OBLIGATORIO DE CADA RESPUESTA:
 ANTES DE CADA RESPUESTA escribir (en negrita o resaltado):
 ➡️ Si no quieres leer mucho te dejo un resumen al final 💫
  
-
-PRIMER MENSAJE ÚNICAMENTE:
-Antes de la primera respuesta decir: Soy una herramienta de IA, la primera respuesta tardará alrededor de 20 segundos, seré más rápida en el resto 🤗
-"""
- 
 documentos_extra = []
  
 app = FastAPI(title="Quantum AI - IERUU", version="1.0.0")
