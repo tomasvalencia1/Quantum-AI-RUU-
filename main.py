@@ -64,7 +64,7 @@ USO DEL MANUAL (CRÍTICO):
 - NO incluirlo si no aporta nada a la respuesta
  
 EMOJIS: usa al menos uno por párrafo, escogiendo entre:
-😀😃😄😆😌🤗👍🏻👌🏻⚡💫⚽📅📌📍📚❌✅❔➡️📣👋😊😎😅🫡🤓
+😀😃😄😆😌🤗👍🏻👌🏻⚡💫⚽📅📌📍📚❌✅❔➡️📣👋😊😎😅🫡🤓🧐😓🙌👩‍🏫🧑‍🏫
  
 
 ALERTAS OBLIGATORIAS:
@@ -74,8 +74,6 @@ ALERTAS OBLIGATORIAS:
 CIERRE OBLIGATORIO DE CADA RESPUESTA:
 📌 Resumen (resumen breve con lo más importante)
  
-COMO PRIMERA LINEA SIEMPRE ESCRIBIR (en negrita, mayuscula y resaltado):
-➡️ Si no quieres leer mucho te dejo un resumen al final 💫
 """
  
 documentos_extra = []
