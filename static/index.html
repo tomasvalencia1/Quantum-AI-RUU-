@@ -867,6 +867,78 @@
     box-shadow:0 4px 20px rgba(0,0,0,.4);
   }
   #toast.show { opacity:1; transform:translateX(-50%) translateY(0) scale(1); }
+
+  /* ── Popup loader GB ── */
+  #popup-loader-wrap {
+    display:flex; flex-direction:column; gap:10px;
+    padding:4px 0;
+  }
+  #popup-loader-bar-bg {
+    width:100%; height:10px; border-radius:99px;
+    background:var(--s3);
+    border:1px solid rgba(192,57,43,.18);
+    overflow:hidden; position:relative;
+  }
+  /* shimmer sweep */
+  #popup-loader-bar-bg::after {
+    content:'';
+    position:absolute; top:0; left:-60%; width:50%; height:100%;
+    background:linear-gradient(90deg, transparent, rgba(255,255,255,.18), transparent);
+    animation:loader-shimmer 1.4s linear infinite;
+  }
+  @keyframes loader-shimmer {
+    0%   { left:-60%; }
+    100% { left:120%; }
+  }
+  #popup-loader-bar {
+    height:100%; width:0%; border-radius:99px;
+    background:linear-gradient(90deg, var(--red-deep), var(--red-hi), #ff7066);
+    box-shadow:0 0 10px rgba(229,57,53,.5);
+    transition:width .08s linear;
+    position:relative; z-index:1;
+  }
+  #popup-loader-info {
+    display:flex; justify-content:space-between; align-items:center;
+  }
+  #popup-loader-gb {
+    font-family:'JetBrains Mono', monospace; font-size:13px;
+    font-weight:600; color:var(--white); letter-spacing:.04em;
+  }
+  #popup-loader-pct {
+    font-family:'JetBrains Mono', monospace; font-size:11px;
+    color:var(--red-hi); letter-spacing:.06em;
+  }
+  /* ── Logo tooltip reiniciar ── */
+  #logo-btn { cursor:pointer; position:relative; }
+  #logo-tooltip {
+    position:absolute;
+    top:calc(100% + 10px); left:50%;
+    transform:translateX(-50%) translateY(4px);
+    background:var(--s2);
+    border:1px solid rgba(192,57,43,.35);
+    color:var(--text);
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px; letter-spacing:.05em;
+    white-space:nowrap;
+    padding:6px 12px; border-radius:7px;
+    box-shadow:0 4px 18px rgba(0,0,0,.45), 0 0 0 1px rgba(192,57,43,.08);
+    pointer-events:none;
+    opacity:0;
+    transition:opacity .2s ease, transform .2s ease;
+    z-index:100;
+  }
+  #logo-tooltip::before {
+    content:'';
+    position:absolute; bottom:100%; left:50%;
+    transform:translateX(-50%);
+    border:5px solid transparent;
+    border-bottom-color:rgba(192,57,43,.35);
+  }
+  #logo-btn:hover #logo-tooltip {
+    opacity:1;
+    transform:translateX(-50%) translateY(0);
+    transition-delay:.6s;
+  }
 </style>
 </head>
 <body>
@@ -915,9 +987,17 @@
       </div>
     </div>
     <div class="popup-footer">
-      <button id="popup-btn" disabled onclick="cerrarPopup()">
-        <div id="popup-progress" style="width:0%"></div>
-        <span id="popup-btn-label">Entendido — espera 5s</span>
+      <div id="popup-loader-wrap">
+        <div id="popup-loader-bar-bg">
+          <div id="popup-loader-bar"></div>
+        </div>
+        <div id="popup-loader-info">
+          <span id="popup-loader-gb">0.00 GB</span>
+          <span id="popup-loader-pct">0%</span>
+        </div>
+      </div>
+      <button id="popup-btn" disabled onclick="cerrarPopup()" style="display:none">
+        <span id="popup-btn-label">✓ Entendido, ¡comencemos!</span>
       </button>
     </div>
   </div>
@@ -925,9 +1005,10 @@
 
 <!-- ── HEADER ── -->
 <header>
-  <div class="logo">
+  <div class="logo" id="logo-btn" onclick="location.reload()" title="">
     <div class="logo-ring"></div>
     <div class="logo-inner"><span class="logo-q">Q</span></div>
+    <div id="logo-tooltip">&#8635; Reiniciar Quantum AI</div>
   </div>
   <div class="header-info">
     <div class="header-title">Quantum AI</div>
@@ -1067,28 +1148,85 @@
   draw();
 })();
 
-// ── Popup countdown ──
+// ── Popup loader (19.05 GB → 23.74 GB) realista ──
 (function(){
-  const DURATION = 10000;
-  const btn = document.getElementById('popup-btn');
-  const label = document.getElementById('popup-btn-label');
-  const bar = document.getElementById('popup-progress');
-  let elapsed = 0;
-  const TICK = 50;
-  const timer = setInterval(function(){
-    elapsed += TICK;
-    const pct = Math.min((elapsed / DURATION) * 100, 100);
-    bar.style.width = pct + '%';
-    const secs = Math.ceil((DURATION - elapsed) / 1000);
-    if(elapsed < DURATION){
-      label.textContent = 'Entendido — espera ' + secs + 's';
-    } else {
-      clearInterval(timer);
-      btn.disabled = false;
-      label.textContent = '✓ Entendido, ¡comencemos!';
-      bar.style.width = '100%';
-    }
-  }, TICK);
+  const GB_START = 0;
+  const GB_END   = +(19.05 + Math.random() * (23.74 - 19.05)).toFixed(2);
+  const bar  = document.getElementById('popup-loader-bar');
+  const gbEl = document.getElementById('popup-loader-gb');
+  const pctEl= document.getElementById('popup-loader-pct');
+  const btn  = document.getElementById('popup-btn');
+  const wrap = document.getElementById('popup-loader-wrap');
+
+  // Segmentos: to=% de la barra, dur=ms animando, pause=ms congelado antes del sig
+  const segments = [
+    { to: 17,  dur: 320, pause: 0   },
+    { to: 31,  dur: 450, pause: 28  },
+    { to: 40,  dur: 380, pause: 0   },
+    { to: 55,  dur: 400, pause: 35  },
+    { to: 61,  dur: 500, pause: 0   },
+    { to: 69,  dur: 300, pause: 22  },
+    { to: 77,  dur: 620, pause: 40  },
+    { to: 86,  dur: 330, pause: 0   },
+    { to: 93,  dur: 420, pause: 25  },
+    { to: 100, dur: 280, pause: 0   },
+  ];
+
+  let currentPct = 0;
+
+  function lerp(a, b, t){ return a + (b - a) * t; }
+  function easeOut(t){ return 1 - Math.pow(1 - t, 2.2); }
+
+  function updateDisplay(pct){
+    const gb = GB_START + (pct / 100) * (GB_END - GB_START);
+    const j  = (Math.random() * 0.08 - 0.04);
+    const displayGb = Math.min(GB_END, Math.max(GB_START, gb + j));
+    bar.style.width   = pct + '%';
+    gbEl.textContent  = displayGb.toFixed(2) + ' GB';
+    pctEl.textContent = Math.round(pct) + '%';
+  }
+
+  function runSegment(idx){
+    if(idx >= segments.length){ finish(); return; }
+    const seg   = segments[idx];
+    const from  = currentPct;
+    const to    = seg.to;
+    const TICK  = 25;
+    const steps = Math.max(1, Math.round(seg.dur / TICK));
+    let step = 0;
+
+    const iv = setInterval(function(){
+      step++;
+      const t = easeOut(Math.min(step / steps, 1));
+      // jitter fino: simula fluctuación de velocidad de transferencia
+      const j = step < steps ? (Math.random() * 0.5 - 0.25) : 0;
+      currentPct = Math.min(to, Math.max(from, lerp(from, to, t) + j));
+      updateDisplay(currentPct);
+      if(step >= steps){
+        clearInterval(iv);
+        currentPct = to;
+        updateDisplay(to);
+        setTimeout(function(){ runSegment(idx + 1); }, seg.pause);
+      }
+    }, TICK);
+  }
+
+  function finish(){
+    bar.style.width   = '100%';
+    gbEl.textContent  = GB_END.toFixed(2) + ' GB';
+    pctEl.textContent = '100%';
+    setTimeout(function(){
+      wrap.style.transition = 'opacity .35s ease';
+      wrap.style.opacity = '0';
+      setTimeout(function(){
+        wrap.style.display = 'none';
+        btn.style.display  = 'block';
+        btn.disabled = false;
+      }, 350);
+    }, 250);
+  }
+
+  setTimeout(function(){ runSegment(0); }, 1750);
 })();
 
 function cerrarPopup(){
