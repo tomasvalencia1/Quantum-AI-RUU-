@@ -64,7 +64,7 @@ USO DEL MANUAL (CRÍTICO):
 - NO incluirlo si no aporta nada a la respuesta
  
 EMOJIS: usa al menos uno por párrafo, escogiendo entre:
-😀😃😄😆😌🤗👍🏻👌🏻⚡💫⚽📅📌📍📚❌✅❔➡️📣👋😊😎😅🫡🤓🧐😓🙌👩‍🏫🧑‍🏫
+😀😃😄😆😌🤗👍🏻👌🏻⚡💫⚽📅📌📍📚❌✅❔➡️📣👋😊😎😅🫡🤓
  
 
 ALERTAS OBLIGATORIAS:
@@ -74,6 +74,8 @@ ALERTAS OBLIGATORIAS:
 CIERRE OBLIGATORIO DE CADA RESPUESTA:
 📌 Resumen (resumen breve con lo más importante)
  
+COMO PRIMERA LINEA SIEMPRE ESCRIBIR (en negrita, mayuscula y resaltado):
+➡️ Si no quieres leer mucho te dejo un resumen al final 💫
 """
  
 documentos_extra = []
@@ -90,6 +92,8 @@ app.add_middleware(
 class MensajeRequest(BaseModel):
     mensaje: str
     historial: Optional[list] = []
+    imagen_base64: Optional[str] = None
+    imagen_mime: Optional[str] = None
  
 class InstruccionRequest(BaseModel):
     instruccion: str
@@ -127,7 +131,17 @@ async def chat(req: MensajeRequest):
     chat_session = model.start_chat(history=historial_gemini)
  
     try:
-        respuesta = chat_session.send_message(req.mensaje)
+        # Construir el contenido del mensaje — con o sin imagen
+        if req.imagen_base64 and req.imagen_mime:
+            import base64
+            img_bytes = base64.b64decode(req.imagen_base64)
+            contenido = [
+                {"mime_type": req.imagen_mime, "data": img_bytes},
+                req.mensaje
+            ]
+            respuesta = chat_session.send_message(contenido)
+        else:
+            respuesta = chat_session.send_message(req.mensaje)
         return {
             "respuesta": respuesta.text,
             "tokens_usados": respuesta.usage_metadata.total_token_count if hasattr(respuesta, 'usage_metadata') else None
