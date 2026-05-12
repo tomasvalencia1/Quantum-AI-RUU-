@@ -910,35 +910,128 @@
   }
   /* ── Logo tooltip reiniciar ── */
   #logo-btn { cursor:pointer; position:relative; }
+
   #logo-tooltip {
-    position:absolute;
-    top:calc(100% + 10px); left:50%;
-    transform:translateX(-50%) translateY(4px);
-    background:var(--s2);
-    border:1px solid rgba(192,57,43,.35);
-    color:var(--text);
-    font-family:'JetBrains Mono', monospace;
-    font-size:10px; letter-spacing:.05em;
+    position:fixed;
+    transform: translateX(-50%) translateY(6px) scale(.94);
+    transform-origin: top center;
+
+    background: linear-gradient(145deg, rgba(22,22,26,.97) 0%, rgba(15,15,18,.98) 100%);
+    border:1px solid rgba(192,57,43,.4);
+    border-radius:10px;
+    padding:8px 14px 8px 11px;
+
+    display:flex; align-items:center; gap:7px;
     white-space:nowrap;
-    padding:6px 12px; border-radius:7px;
-    box-shadow:0 4px 18px rgba(0,0,0,.45), 0 0 0 1px rgba(192,57,43,.08);
     pointer-events:none;
     opacity:0;
-    transition:opacity .2s ease, transform .2s ease;
-    z-index:100;
+    z-index:9999;
+
+    box-shadow:
+      0 8px 32px rgba(0,0,0,.55),
+      0 0 0 1px rgba(255,255,255,.03),
+      inset 0 1px 0 rgba(255,255,255,.05),
+      0 0 18px rgba(192,57,43,.1);
+
+    transition:
+      opacity .22s cubic-bezier(.4,0,.2,1),
+      transform .28s cubic-bezier(.34,1.45,.64,1);
+    transition-delay: 0s;
   }
+
+  #logo-tooltip::after {
+    content: '↺';
+    font-size:14px; line-height:1;
+    color:var(--red-hi);
+    display:inline-block;
+    animation: tooltip-spin-idle 3s linear infinite paused;
+  }
+
+  #logo-tooltip span {
+    font-family:'JetBrains Mono', monospace;
+    font-size:10px; letter-spacing:.07em;
+    color:var(--text); font-weight:500;
+    text-transform:uppercase;
+  }
+
   #logo-tooltip::before {
     content:'';
     position:absolute; bottom:100%; left:50%;
     transform:translateX(-50%);
     border:5px solid transparent;
-    border-bottom-color:rgba(192,57,43,.35);
+    border-bottom-color:rgba(192,57,43,.4);
+    filter: drop-shadow(0 -1px 0 rgba(192,57,43,.15));
   }
-  #logo-btn:hover #logo-tooltip {
+
+  #logo-btn:hover .logo-inner {
+    box-shadow: 0 0 22px rgba(192,57,43,.55), 0 0 8px rgba(229,57,53,.3);
+  }
+
+  #logo-tooltip.visible {
     opacity:1;
-    transform:translateX(-50%) translateY(0);
-    transition-delay:.6s;
+    transform: translateX(-50%) translateY(0) scale(1);
   }
+
+  #logo-tooltip.visible::after {
+    animation-play-state: running;
+  }
+
+  @keyframes tooltip-spin-idle {
+    0%   { transform: rotate(0deg); }
+    15%  { transform: rotate(-360deg); }
+    100% { transform: rotate(-360deg); }
+  }
+  /* ── Adjuntar imagen ── */
+  #btn-adjuntar {
+    flex-shrink:0;
+    width:36px; height:36px;
+    background:transparent;
+    border:1px solid rgba(192,57,43,.25);
+    border-radius:9px;
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer;
+    color:var(--text-muted);
+    transition:background .18s, border-color .18s, color .18s;
+    padding:0;
+  }
+  #btn-adjuntar:hover {
+    background:rgba(192,57,43,.12);
+    border-color:rgba(192,57,43,.5);
+    color:var(--red-hi);
+  }
+  #btn-adjuntar svg { width:16px; height:16px; }
+  #btn-adjuntar.has-file {
+    background:rgba(192,57,43,.15);
+    border-color:var(--red-hi);
+    color:var(--red-hi);
+  }
+
+  #preview-chip {
+    display:flex; align-items:center; gap:6px;
+    background:rgba(192,57,43,.1);
+    border:1px solid rgba(192,57,43,.3);
+    border-radius:8px;
+    padding:4px 8px 4px 5px;
+    flex-shrink:0; max-width:160px;
+  }
+  #preview-img {
+    width:28px; height:28px;
+    border-radius:5px; object-fit:cover;
+    flex-shrink:0;
+  }
+  #preview-name {
+    font-size:10px; color:var(--text-muted);
+    white-space:nowrap; overflow:hidden;
+    text-overflow:ellipsis; max-width:80px;
+    font-family:'JetBrains Mono', monospace;
+  }
+  #preview-remove {
+    background:none; border:none;
+    color:var(--text-muted); cursor:pointer;
+    font-size:11px; padding:0; line-height:1;
+    flex-shrink:0;
+  }
+  #preview-remove:hover { color:var(--red-hi); }
 </style>
 </head>
 <body>
@@ -1003,12 +1096,14 @@
   </div>
 </div>
 
+<!-- ── Logo tooltip ── -->
+<div id="logo-tooltip"><span>Reiniciar Quantum AI</span></div>
+
 <!-- ── HEADER ── -->
 <header>
   <div class="logo" id="logo-btn" onclick="location.reload()" title="">
     <div class="logo-ring"></div>
     <div class="logo-inner"><span class="logo-q">Q</span></div>
-    <div id="logo-tooltip">&#8635; Reiniciar Quantum AI</div>
   </div>
   <div class="header-info">
     <div class="header-title">Quantum AI</div>
@@ -1074,6 +1169,18 @@
   </div>
 
   <div class="input-wrap">
+    <button id="btn-adjuntar" onclick="document.getElementById('file-adjunto').click()" title="Adjuntar imagen">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/>
+        <polyline points="21 15 16 10 5 21"/>
+      </svg>
+    </button>
+    <input type="file" id="file-adjunto" accept="image/*" style="display:none" onchange="adjuntarArchivo(event)">
+    <div id="preview-chip" style="display:none">
+      <img id="preview-img" src="" alt="">
+      <span id="preview-name"></span>
+      <button id="preview-remove" onclick="quitarAdjunto()">✕</button>
+    </div>
     <textarea id="texto-input" placeholder="Escribe tu pregunta..." rows="1"
       oninput="autoResize(this)" onkeydown="teclaPresionada(event)"></textarea>
     <button id="btn-enviar" onclick="enviarMensaje()" title="Enviar">
@@ -1227,6 +1334,35 @@
   }
 
   setTimeout(function(){ runSegment(0); }, 1750);
+})();
+
+// ── Logo tooltip position ──
+(function(){
+  const btn = document.getElementById('logo-btn');
+  const tip = document.getElementById('logo-tooltip');
+  if(!btn || !tip) return;
+  let showTimer = null;
+
+  function reposition(){
+    const r = btn.getBoundingClientRect();
+    tip.style.left = (r.left + r.width / 2) + 'px';
+    tip.style.top  = (r.bottom + 10) + 'px';
+  }
+
+  btn.addEventListener('mouseenter', function(){
+    reposition();
+    showTimer = setTimeout(function(){
+      tip.classList.add('visible');
+    }, 550);
+  });
+
+  btn.addEventListener('mouseleave', function(){
+    clearTimeout(showTimer);
+    tip.classList.remove('visible');
+  });
+
+  window.addEventListener('resize', reposition);
+  reposition();
 })();
 
 function cerrarPopup(){
@@ -2373,32 +2509,93 @@ function mostrarAlertaObscenidad(){
 }
 // ── FIN FILTRO ───────────────────────────────────────────────────
 
+// ── Adjunto de imagen ──
+let adjuntoBase64 = null;
+let adjuntoNombre = null;
+let adjuntoMime   = null;
+
+function adjuntarArchivo(e){
+  const file = e.target.files[0];
+  if(!file) return;
+  if(file.size > 4 * 1024 * 1024){ toast('⚠️ Imagen máx. 4 MB'); e.target.value=''; return; }
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    adjuntoBase64 = ev.target.result.split(',')[1];
+    adjuntoMime   = file.type;
+    adjuntoNombre = file.name;
+    const chip = document.getElementById('preview-chip');
+    const img  = document.getElementById('preview-img');
+    const name = document.getElementById('preview-name');
+    img.src = ev.target.result;
+    name.textContent = file.name;
+    chip.style.display = 'flex';
+    document.getElementById('btn-adjuntar').classList.add('has-file');
+    document.getElementById('file-adjunto').value='';
+  };
+  reader.readAsDataURL(file);
+}
+
+function quitarAdjunto(){
+  adjuntoBase64 = null; adjuntoNombre = null; adjuntoMime = null;
+  document.getElementById('preview-chip').style.display = 'none';
+  document.getElementById('preview-img').src = '';
+  document.getElementById('btn-adjuntar').classList.remove('has-file');
+}
+
 async function enviarMensaje(){
   if(esperando)return;
   const inp=document.getElementById('texto-input');
   const msg=inp.value.trim();
-  if(!msg)return;
-  // Verificar filtro de palabras
-  if(contieneObscenidad(msg)){
+  if(!msg && !adjuntoBase64)return;
+  if(msg && contieneObscenidad(msg)){
     mostrarAlertaObscenidad();
-    return; // No limpiar el input para que el usuario pueda corregirlo
+    return;
   }
   inp.value=''; inp.style.height='auto';
   document.getElementById('btn-enviar').disabled=true;
   esperando=true;
-  agregarMensaje('user',msg);
+
+  // Mostrar burbuja de usuario con imagen si hay adjunto
+  if(adjuntoBase64){
+    const wrap=document.getElementById('mensajes');
+    const bien=document.getElementById('bienvenida');
+    if(bien)bien.remove();
+    const div=document.createElement('div');
+    div.className='burbuja usuario';
+    div.innerHTML=`<div class="burbuja-label">Tú</div>
+      <div class="burbuja-texto">
+        ${msg ? `<div style="margin-bottom:8px">${marcarTexto(msg)}</div>` : ''}
+        <img src="data:${adjuntoMime};base64,${adjuntoBase64}"
+          style="max-width:220px;max-height:180px;border-radius:8px;display:block;border:1px solid rgba(255,255,255,.1)">
+        <div style="font-size:10px;color:var(--text-muted);margin-top:4px;font-family:'JetBrains Mono',monospace">📎 ${adjuntoNombre}</div>
+      </div>`;
+    wrap.appendChild(div);
+    requestAnimationFrame(()=>{ wrap.scrollTop=wrap.scrollHeight; });
+  } else {
+    agregarMensaje('user', msg);
+  }
+
   mostrarTyping();
   let quotaActiva = false;
+
+  // Construir el mensaje para el historial incluyendo imagen si hay
+  const mensajeTexto = msg || '(imagen adjunta)';
+
   try{
+    const body = {
+      mensaje: mensajeTexto,
+      historial,
+      ...(adjuntoBase64 ? { imagen_base64: adjuntoBase64, imagen_mime: adjuntoMime } : {})
+    };
     const res=await fetch(`${API_URL}/chat`,{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({mensaje:msg,historial})
+      body:JSON.stringify(body)
     });
     const data=await res.json();
     quitarTyping();
     if(res.ok){
       agregarMensaje('ai',data.respuesta);
-      historial.push({rol:'user',texto:msg},{rol:'model',texto:data.respuesta});
+      historial.push({rol:'user',texto:mensajeTexto},{rol:'model',texto:data.respuesta});
       if(historial.length>20)historial=historial.slice(-20);
     } else if(res.status===429 || (data.detail && data.detail.includes('429'))){
       quotaActiva = true;
@@ -2406,7 +2603,7 @@ async function enviarMensaje(){
       const match = (data.detail||'').match(/retry in (\d+)/i) || (data.detail||'').match(/seconds[^0-9]*(\d+)/i);
       if(!match){ const m2=(data.detail||'').match(/(\d+)\s*\.\d+s/); if(m2) secs=parseInt(m2[1])+1; }
       else secs = parseInt(match[1])+1;
-      mostrarQuota(secs, msg);
+      mostrarQuota(secs, mensajeTexto);
     } else {
       agregarMensaje('ai','⚠️ Error: '+(data.detail||'Intenta de nuevo'));
     }
@@ -2414,7 +2611,10 @@ async function enviarMensaje(){
     quitarTyping();
     agregarMensaje('ai','⚠️ No puedo conectarme al servidor. Revisa tu conexión.');
   }
-  // Solo re-habilitar si NO hay cuota activa — cerrarQuota() lo gestiona
+
+  // Limpiar adjunto tras enviar
+  quitarAdjunto();
+
   if(!quotaActiva){
     document.getElementById('btn-enviar').disabled=false;
     esperando=false;
